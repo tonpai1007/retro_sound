@@ -1,0 +1,911 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE PHANTOM SIGNAL v5 - LRC SYNC</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --phosphor: #FFB000;
+            --phosphor-glow: rgba(255, 176, 0, 0.7);
+            --neon-green: #33ff00;
+            --screen-bg: #0a0500;
+        }
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050505; font-family: 'VT323', monospace;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; margin: 0; overflow: hidden;
+        }
+        .crt-monitor {
+            background: #1a1a1a; border-radius: 30px; padding: 50px;
+            box-shadow: 0 0 0 15px #111, 0 0 0 20px #2a2a2a, 0 0 80px rgba(0,0,0,0.8);
+            position: relative; width: 1000px; height: 700px; max-width: 98%;
+        }
+        .crt-screen {
+            width: 100%; height: 100%; background: var(--screen-bg); border-radius: 25px;
+            border: 3px solid #050505; color: var(--phosphor); overflow: hidden; position: relative;
+            padding: 20px; box-sizing: border-box; box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+            display: flex; flex-direction: column;
+        }
+        .crt-screen::before {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.3) 50%), linear-gradient(90deg, rgba(255,176,0,0.03), rgba(0,0,0,0.1), rgba(255,176,0,0.03));
+            z-index: 5; background-size: 100% 3px, 4px 100%; pointer-events: none;
+        }
+        .crt-screen::after {
+            content: " "; display: block; position: absolute; top: 0; left: 0; bottom: 0; right: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+            z-index: 6; pointer-events: none;
+        }
+        .ui-wrapper { display: flex; flex-direction: column; height: 100%; z-index: 4; }
+        .header {
+            font-size: 22px; border-bottom: 2px solid var(--phosphor); padding-bottom: 8px;
+            margin-bottom: 10px; text-shadow: 0 0 8px var(--phosphor-glow);
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .header .title { display: flex; align-items: center; gap: 10px; }
+        .header .badge {
+            font-size: 12px; color: var(--neon-green); border: 1px solid var(--neon-green);
+            padding: 0 6px; text-shadow: 0 0 5px var(--neon-green);
+        }
+        .main-content { display: flex; gap: 15px; flex-grow: 1; min-height: 0; }
+        
+        /* Left Panel */
+        .left-panel {
+            width: 35%; display: flex; flex-direction: column; gap: 10px;
+            border-right: 1px dashed var(--phosphor); padding-right: 12px;
+        }
+        .scope-container {
+            flex-grow: 1; border: 2px solid var(--phosphor); background: #000;
+            box-shadow: inset 0 0 20px rgba(255,176,0,0.1); position: relative; overflow: hidden;
+            min-height: 120px;
+        }
+        #oscilloscope { width: 100%; height: 100%; display: block; }
+        .radio-dial {
+            border: 2px solid var(--phosphor); padding: 8px; text-align: center;
+        }
+        .dial-display { font-size: 28px; color: var(--neon-green); text-shadow: 0 0 10px var(--neon-green); margin-bottom: 6px; }
+        input[type="range"] { width: 100%; cursor: pointer; accent-color: var(--phosphor); }
+        .dial-labels { display: flex; justify-content: space-between; font-size: 12px; color: #666; margin-top: 2px; }
+        
+        /* Right Panel */
+        .right-panel { flex-grow: 1; display: flex; flex-direction: column; min-width: 0; }
+        .input-row { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; align-items: center; font-size: 18px; }
+        input[type="text"] {
+            background: transparent; border: none; border-bottom: 1px solid var(--phosphor);
+            color: var(--phosphor); font-family: 'VT323', monospace; font-size: 18px; outline: none;
+            width: 100px; text-shadow: 0 0 5px var(--phosphor-glow);
+        }
+        input[type="text"].wide { width: 180px; }
+        button {
+            background: transparent; border: 1px solid var(--phosphor); color: var(--phosphor);
+            padding: 2px 12px; font-family: 'VT323', monospace; font-size: 18px; cursor: pointer;
+            text-transform: uppercase; transition: 0.2s;
+        }
+        button:hover { background: var(--phosphor); color: #000; box-shadow: 0 0 15px var(--phosphor-glow); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+        button.danger { border-color: #ff3333; color: #ff3333; }
+        button.danger:hover { background: #ff3333; color: #000; }
+        button.success { border-color: var(--neon-green); color: var(--neon-green); }
+        button.success:hover { background: var(--neon-green); color: #000; }
+
+        .lyrics-panel {
+            flex-grow: 1; overflow-y: auto; font-size: 22px; line-height: 1.4;
+            scrollbar-width: thin; scrollbar-color: var(--phosphor) transparent;
+            padding: 8px; border: 1px solid #333; position: relative;
+        }
+        .lyrics-panel::-webkit-scrollbar { width: 6px; }
+        .lyrics-panel::-webkit-scrollbar-thumb { background: var(--phosphor); }
+        
+        /* LRC Karaoke Sync Styles */
+        .lrc-line {
+            color: #444; transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
+            padding: 2px 0; display: block;
+        }
+        .lrc-line.active {
+            color: var(--neon-green); text-shadow: 0 0 20px var(--neon-green);
+            transform: scale(1.05); transform-origin: left center;
+        }
+        .lrc-line.sung {
+            color: var(--phosphor); text-shadow: 0 0 5px var(--phosphor-glow);
+        }
+        .lrc-line .word {
+            transition: color 0.08s, text-shadow 0.08s;
+        }
+        .lrc-line .word.active {
+            color: #ffffff; text-shadow: 0 0 15px #ffffff, 0 0 30px var(--neon-green);
+        }
+        
+        .status-bar {
+            margin-top: 8px; font-size: 16px; color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green); display: flex; justify-content: space-between;
+        }
+        .loading { color: #ffff00; text-shadow: 0 0 8px #ffff00; }
+        
+        /* Progress bar */
+        .progress-bar {
+            width: 100%; height: 4px; background: #222; margin-top: 6px; border-radius: 2px; overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%; background: var(--neon-green); width: 0%;
+            box-shadow: 0 0 10px var(--neon-green); transition: width 0.1s linear;
+        }
+
+        /* LRC Editor Modal */
+        .modal-overlay {
+            position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.85); z-index: 20; display: none;
+            padding: 20px; flex-direction: column;
+        }
+        .modal-overlay.open { display: flex; }
+        .modal-header { display: flex; justify-content: space-between; margin-bottom: 10px; }
+        .modal-body { flex-grow: 1; display: flex; flex-direction: column; }
+        textarea {
+            flex-grow: 1; background: #000; border: 1px solid var(--phosphor);
+            color: var(--phosphor); font-family: 'VT323', monospace; font-size: 16px;
+            padding: 10px; resize: none; outline: none;
+        }
+        .modal-footer { margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end; }
+    </style>
+</head>
+<body>
+
+    <div class="crt-monitor">
+        <div class="crt-screen">
+            <!-- LRC Editor Modal -->
+            <div class="modal-overlay" id="lrc-modal">
+                <div class="modal-header">
+                    <span style="font-size: 20px; text-shadow: 0 0 8px var(--phosphor-glow);">▓▒░ LRC EDITOR ░▒▓</span>
+                    <button onclick="closeLRCEditor()">CLOSE</button>
+                </div>
+                <div class="modal-body">
+                    <div style="color: #888; font-size: 14px; margin-bottom: 8px;">
+                        Paste LRC lyrics below. Format: <span style="color: var(--neon-green);">[mm:ss.xx]Lyric text</span>
+                        <br>Or leave empty to use plain lyrics with timer-based sync.
+                    </div>
+                    <textarea id="lrc-textarea" spellcheck="false"></textarea>
+                </div>
+                <div class="modal-footer">
+                    <button class="danger" onclick="closeLRCEditor()">CANCEL</button>
+                    <button class="success" onclick="applyLRC()">APPLY LRC</button>
+                </div>
+            </div>
+
+            <div class="ui-wrapper">
+                <div class="header">
+                    <div class="title">
+                        <span>▓▒░ PHANTOM_SIGNAL.v5 ░▒▓</span>
+                        <span class="badge">LRC SYNC</span>
+                    </div>
+                    <span id="clock">00:00:00</span>
+                </div>
+                
+                <div class="main-content">
+                    <!-- Left: Oscilloscope & Radio -->
+                    <div class="left-panel">
+                        <div class="scope-container">
+                            <canvas id="oscilloscope"></canvas>
+                        </div>
+                        <div class="radio-dial">
+                            <div class="dial-display" id="dial-display">88.0 FM</div>
+                            <input type="range" id="tuner" min="880" max="1080" value="880" oninput="tuneRadio()">
+                            <div class="dial-labels">
+                                <span>NUMBERS</span>
+                                <span>DEAD AIR</span>
+                                <span>MUSIC</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Right: LRC Karaoke -->
+                    <div class="right-panel">
+                        <div class="input-row">
+            ARTIST: <input type="text" id="artist" value="a-ha" title="Artist name" placeholder="Artist">
+            TRACK: <input type="text" id="title" value="Take On Me" title="Track title" placeholder="Track">
+            <button id="fetch-btn" onclick="fetchAndPlay()">LOAD</button>
+                            <button id="lrc-btn" onclick="openLRCEditor()">LRC</button>
+                            <button onclick="exportLRC()">EXPORT</button>
+                            <button onclick="copyLRC()">COPY</button>
+                            <button onclick="shareURL()">SHARE</button>
+                        </div>
+                        <div class="input-row" style="font-size: 14px; color: #888;">
+                            <span>OR paste audio URL:</span>
+                            <input type="text" id="audio-url" class="wide" title="Direct audio URL or YouTube video ID" placeholder="https://...mp3 or YT video ID">
+                            <button id="play-url-btn" onclick="playFromURL()">▶</button>
+                        </div>
+                        <div class="lyrics-panel" id="lyrics-text">
+                            > AWAITING SIGNAL...<br>
+                            > TUNE RADIO ABOVE 104.0 FOR MUSIC<br>
+                            > TUNE BELOW 92.0 FOR PHANTOM STATION<br>
+                            > <span style="color: var(--neon-green);">PRESS LRC TO PASTE TIMESTAMPED LYRICS</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="status-bar">
+                            <span id="status">STATUS: STANDBY</span>
+                            <span id="time-display">00:00 / 00:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  PHANTOM SIGNAL v5 — LRC SYNC ENGINE
+        // ============================================================
+
+        // --- DOM REFS ---
+        const lyricsText = document.getElementById('lyrics-text');
+        const dialDisplay = document.getElementById('dial-display');
+        const tuner = document.getElementById('tuner');
+        const statusEl = document.getElementById('status');
+        const timeDisplay = document.getElementById('time-display');
+        const progressFill = document.getElementById('progress-fill');
+        const canvas = document.getElementById('oscilloscope');
+        const canvasCtx = canvas.getContext('2d');
+        const lrcTextarea = document.getElementById('lrc-textarea');
+        const lrcModal = document.getElementById('lrc-modal');
+
+        // --- STATE ---
+        let audioCtx = null;
+        let analyser = null;
+        let audioSource = null;
+        let noiseSource = null;
+        let currentAudio = null;
+        let speechSynth = window.speechSynthesis;
+        let syncRAF = null;
+        let lrcData = [];          // [{time: seconds, text: string}]
+        let lrcActive = false;
+        let lrcLineElements = [];
+        let isPlaying = false;
+        let audioDuration = 0;
+        let backendAvailable = false;
+
+        // ============================================================
+        //  BACKEND DETECTION
+        // ============================================================
+        async function detectBackend() {
+            try {
+                const resp = await fetch('/api/health', { method: 'HEAD', cache: 'no-store' });
+                backendAvailable = resp.ok;
+            } catch(e) {
+                backendAvailable = false;
+            }
+        }
+
+        // ============================================================
+        //  1. AUDIO INIT
+        // ============================================================
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioCtx.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.connect(audioCtx.destination);
+            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+
+        // ============================================================
+        //  2. OSCILLOSCOPE
+        // ============================================================
+        function drawOscilloscope() {
+            requestAnimationFrame(drawOscilloscope);
+            canvas.width = canvas.offsetWidth * 2;
+            canvas.height = canvas.offsetHeight * 2;
+            
+            const bufferLength = analyser ? analyser.frequencyBinCount : 1024;
+            const dataArray = new Uint8Array(bufferLength);
+            if (analyser) analyser.getByteTimeDomainData(dataArray);
+
+            canvasCtx.clearRect(0, 0, canvas.width, canvas.height);
+            canvasCtx.lineWidth = 4;
+            canvasCtx.strokeStyle = '#FFB000';
+            canvasCtx.shadowBlur = 10;
+            canvasCtx.shadowColor = '#FFB000';
+            canvasCtx.beginPath();
+
+            const sliceWidth = canvas.width / bufferLength;
+            let x = 0;
+
+            for (let i = 0; i < bufferLength; i++) {
+                let v;
+                if (analyser && (currentAudio || noiseSource)) {
+                    v = dataArray[i] / 128.0;
+                } else {
+                    v = 1 + Math.sin(i * 0.05 + Date.now() * 0.005) * 0.02;
+                }
+                const y = (v * canvas.height) / 2;
+                if (i === 0) canvasCtx.moveTo(x, y);
+                else canvasCtx.lineTo(x, y);
+                x += sliceWidth;
+            }
+            canvasCtx.lineTo(canvas.width, canvas.height / 2);
+            canvasCtx.stroke();
+        }
+        drawOscilloscope();
+
+        // ============================================================
+        //  3. RADIO TUNING
+        // ============================================================
+        function tuneRadio() {
+            const freq = parseInt(tuner.value);
+            const freqDecimal = (freq / 10).toFixed(1);
+            dialDisplay.innerText = `${freqDecimal} FM`;
+            initAudio();
+            stopAllAudio();
+            if (speechSynth.speaking) speechSynth.cancel();
+
+            if (freq < 920) {
+                statusEl.innerText = "STATUS: PHANTOM STATION DETECTED";
+                startNumbersStation();
+            } else if (freq > 1040) {
+                statusEl.innerText = "STATUS: MUSIC BAND. LOAD A TRACK";
+            } else {
+                statusEl.innerText = "STATUS: DEAD AIR...";
+            }
+        }
+
+        // ============================================================
+        //  4. NUMBERS STATION
+        // ============================================================
+        function startNumbersStation() {
+            const bufferSize = audioCtx.sampleRate * 2;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+
+            noiseSource = audioCtx.createBufferSource();
+            noiseSource.buffer = buffer;
+            noiseSource.loop = true;
+            const noiseGain = audioCtx.createGain();
+            noiseGain.gain.value = 0.08;
+            noiseSource.connect(noiseGain);
+            noiseGain.connect(analyser);
+            noiseSource.start();
+
+            function speakNumbers() {
+                if (parseInt(tuner.value) >= 920) return;
+                if (speechSynth.speaking) return;
+                const utterance = new SpeechSynthesisUtterance();
+                const numbers = [];
+                for(let i=0; i<5; i++) numbers.push(Math.floor(Math.random() * 10));
+                utterance.text = numbers.join("... ");
+                utterance.pitch = 0.1;
+                utterance.rate = 0.7;
+                speechSynth.speak(utterance);
+                utterance.onend = () => setTimeout(speakNumbers, 3000);
+            }
+            speakNumbers();
+        }
+
+        function stopNoise() {
+            if (noiseSource) {
+                try { noiseSource.stop(); } catch(e){}
+                try { noiseSource.disconnect(); } catch(e){}
+                noiseSource = null;
+            }
+        }
+
+        // ============================================================
+        //  5. LRC PARSER
+        // ============================================================
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const parsed = [];
+            const lineRegex = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\](.*)/;
+
+            for (const line of lines) {
+                const match = line.match(lineRegex);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    let millis = parseInt(match[3]);
+                    // Handle 2-digit or 3-digit millis
+                    if (match[3].length === 2) millis *= 10;
+                    const time = minutes * 60 + seconds + millis / 1000;
+                    const text = match[4].trim();
+                    if (text) parsed.push({ time, text });
+                }
+            }
+
+            // Sort by time
+            parsed.sort((a, b) => a.time - b.time);
+            return parsed;
+        }
+
+        // ============================================================
+        //  6. LRC RENDERER
+        // ============================================================
+        function renderLRC(lines) {
+            lyricsText.innerHTML = '';
+            lrcLineElements = [];
+
+            if (!lines || lines.length === 0) {
+                lyricsText.innerHTML = '> NO LRC DATA LOADED';
+                return;
+            }
+
+            lines.forEach((line, index) => {
+                const div = document.createElement('div');
+                div.className = 'lrc-line';
+                div.dataset.index = index;
+                
+                // Split into words for word-level highlighting
+                const words = line.text.split(' ');
+                words.forEach((word, wi) => {
+                    const span = document.createElement('span');
+                    span.className = 'word';
+                    span.innerText = word + ' ';
+                    div.appendChild(span);
+                });
+                
+                lyricsText.appendChild(div);
+                lrcLineElements.push(div);
+            });
+        }
+
+        // ============================================================
+        //  7. LRC SYNC LOOP (requestAnimationFrame based)
+        // ============================================================
+        function startSyncLoop() {
+            if (syncRAF) cancelAnimationFrame(syncRAF);
+            lrcActive = true;
+
+            function syncLoop() {
+                if (!currentAudio || !lrcActive || !isPlaying) {
+                    syncRAF = requestAnimationFrame(syncLoop);
+                    return;
+                }
+
+                const currentTime = currentAudio.currentTime;
+                const duration = audioDuration || currentAudio.duration || 1;
+                
+                // Update progress
+                const pct = (currentTime / duration) * 100;
+                progressFill.style.width = Math.min(pct, 100) + '%';
+                
+                // Update time display
+                const cur = formatTime(currentTime);
+                const dur = formatTime(duration);
+                timeDisplay.innerText = `${cur} / ${dur}`;
+
+                // Find current LRC line
+                if (lrcData.length > 0) {
+                    let activeIndex = -1;
+                    for (let i = lrcData.length - 1; i >= 0; i--) {
+                        if (currentTime >= lrcData[i].time) {
+                            activeIndex = i;
+                            break;
+                        }
+                    }
+
+                    lrcLineElements.forEach((el, idx) => {
+                        el.classList.remove('active', 'sung');
+                        if (idx < activeIndex) {
+                            el.classList.add('sung');
+                        } else if (idx === activeIndex) {
+                            el.classList.add('active');
+                            // Auto-scroll to keep active line visible
+                            const panel = lyricsText;
+                            const elTop = el.offsetTop;
+                            const panelScroll = panel.scrollTop;
+                            const panelHeight = panel.clientHeight;
+                            if (elTop < panelScroll || elTop > panelScroll + panelHeight - 60) {
+                                el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                            }
+                        }
+                    });
+                }
+
+                // Check if song ended
+                if (currentAudio.ended) {
+                    stopBroadcast();
+                    statusEl.innerText = "STATUS: TRANSMISSION COMPLETE";
+                    return;
+                }
+
+                syncRAF = requestAnimationFrame(syncLoop);
+            }
+            syncRAF = requestAnimationFrame(syncLoop);
+        }
+
+        function stopSyncLoop() {
+            lrcActive = false;
+            if (syncRAF) {
+                cancelAnimationFrame(syncRAF);
+                syncRAF = null;
+            }
+        }
+
+        // ============================================================
+        //  8. AUDIO PLAYBACK
+        // ============================================================
+        function playAudio(url, lrcLines) {
+            initAudio();
+            stopAllAudio();
+            if (speechSynth.speaking) speechSynth.cancel();
+
+            if (lrcLines) {
+                lrcData = lrcLines;
+                renderLRC(lrcLines);
+            }
+
+            currentAudio = new Audio(url);
+            currentAudio.crossOrigin = "anonymous";
+            
+            currentAudio.addEventListener('loadedmetadata', () => {
+                audioDuration = currentAudio.duration;
+                timeDisplay.innerText = `00:00 / ${formatTime(audioDuration)}`;
+            });
+
+            currentAudio.addEventListener('canplay', () => {
+                audioSource = audioCtx.createMediaElementSource(currentAudio);
+                audioSource.connect(analyser);
+                currentAudio.play();
+                isPlaying = true;
+                statusEl.innerText = "STATUS: PLAYING (LRC SYNC ACTIVE)";
+                startSyncLoop();
+            });
+
+            currentAudio.addEventListener('ended', () => {
+                stopBroadcast();
+                statusEl.innerText = "STATUS: TRANSMISSION COMPLETE";
+            });
+
+            currentAudio.addEventListener('error', (e) => {
+                statusEl.innerText = "STATUS: AUDIO ERROR";
+                lyricsText.innerHTML = '<span style="color:#ff0000;">> AUDIO LOAD FAILED. Check URL or CORS.</span>';
+            });
+        }
+
+function lyricsApiUrl(artist, title) {
+            if (backendAvailable) {
+                return '/api/lyrics?artist=' + encodeURIComponent(artist) + '&title=' + encodeURIComponent(title);
+            }
+            return 'https://api.lyrics.ovh/v1/' + artist + '/' + title;
+        }
+        function previewApiUrl(artist, title) {
+            if (backendAvailable) {
+                return '/api/preview?artist=' + encodeURIComponent(artist) + '&title=' + encodeURIComponent(title);
+            }
+            return 'https://itunes.apple.com/search?term=' + encodeURIComponent(artist + ' ' + title) + '&entity=song&limit=1';
+        }
+        function audioProxyUrl(url) {
+            if (backendAvailable) {
+                return '/api/audio/proxy?url=' + encodeURIComponent(url);
+            }
+            return url;
+        }
+
+        // ============================================================
+        //  9. MAIN ACTIONS
+        // ============================================================
+        async function fetchAndPlay() {
+            if (parseInt(tuner.value) <= 1040) {
+                lyricsText.innerHTML = '<span style="color:#ff0000;">> TUNE RADIO ABOVE 104.0 FM FIRST!</span>';
+                return;
+            }
+
+            initAudio();
+            stopAllAudio();
+            if (speechSynth.speaking) speechSynth.cancel();
+
+            const artist = document.getElementById('artist').value.trim();
+            const title = document.getElementById('title').value.trim();
+            if(!artist || !title) return;
+
+            document.getElementById('fetch-btn').disabled = true;
+            statusEl.innerText = "STATUS: SCANNING FREQUENCIES...";
+            lyricsText.innerHTML = '<span class="loading">> FETCHING LYRICS & PREVIEW...</span>';
+
+            try {
+                // 1. Fetch lyrics (use backend proxy if available)
+                const lyricRes = await fetch(lyricsApiUrl(artist, title));
+                const lyricData = await lyricRes.json();
+
+                if(lyricData.error || !lyricData.lyrics) {
+                    lyricsText.innerHTML = '<span style="color:#ff0000;">> LYRICS NOT FOUND</span>';
+                    document.getElementById('fetch-btn').disabled = false;
+                    return;
+                }
+
+                // 2. Fetch iTunes 30s preview (use backend proxy if available)
+                const itunesRes = await fetch(previewApiUrl(artist, title));
+                const itunesData = await itunesRes.json();
+
+                if(!itunesData.results || !itunesData.results[0].previewUrl) {
+                    lyricsText.innerHTML = '<span style="color:#ff0000;">> AUDIO PREVIEW NOT FOUND</span>';
+                    document.getElementById('fetch-btn').disabled = false;
+                    return;
+                }
+
+                let previewUrl = itunesData.results[0].previewUrl;
+                if (backendAvailable) {
+                    previewUrl = '/api/audio/proxy?url=' + encodeURIComponent(previewUrl);
+                }
+
+                statusEl.innerText = "STATUS: SIGNAL LOCKED";
+
+// 3. If we have LRC data, use it. Otherwise generate LRC from plain lyrics.
+                 if (lrcData.length === 0) {
+                     // If backend is available, use server-side LRC generation
+                     if (backendAvailable) {
+                         try {
+                             const lrcRes = await fetch('/api/lrc/generate', {
+                                 method: 'POST',
+                                 headers: { 'Content-Type': 'application/json' },
+                                 body: JSON.stringify({ lyrics: lyricData.lyrics, duration: 30 })
+                             });
+                             const lrcResult = await lrcRes.json();
+                             if (lrcResult.lrc && lrcResult.lrc.length > 0) {
+                                 lrcData = lrcResult.lrc;
+                                 renderLRC(lrcData);
+                             } else {
+                                 // Backend returned empty LRC — fall back to client-side timer spacing
+                                 statusEl.innerText = 'STATUS: Backend LRC empty, using timer sync';
+                                 const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
+                                 const totalDuration = 30;
+                                 const interval = totalDuration / plainLines.length;
+                                 lrcData = plainLines.map((text, i) => ({
+                                     time: i * interval,
+                                     text: text.trim()
+                                 }));
+                                 renderLRC(lrcData);
+                             }
+                         } catch(e) {
+                             // Backend LRC generation call failed — fall back to client-side timer spacing
+                             statusEl.innerText = 'STATUS: Backend LRC gen failed, using timer sync';
+                             const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
+                             const totalDuration = 30;
+                             const interval = totalDuration / plainLines.length;
+                             lrcData = plainLines.map((text, i) => ({
+                                 time: i * interval,
+                                 text: text.trim()
+                             }));
+                             renderLRC(lrcData);
+                         }
+                     } else {
+                         // No backend available — use client-side timer spacing
+                         const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
+                         const totalDuration = 30;
+                         const interval = totalDuration / plainLines.length;
+                         lrcData = plainLines.map((text, i) => ({
+                             time: i * interval,
+                             text: text.trim()
+                         }));
+                         renderLRC(lrcData);
+                     }
+                 }
+
+                // 4. Play
+                playAudio(previewUrl, null);
+                document.getElementById('fetch-btn').disabled = false;
+
+            } catch (err) {
+                lyricsText.innerHTML = '<span style="color:#ff0000;">> NETWORK ERROR</span>';
+                document.getElementById('fetch-btn').disabled = false;
+            }
+        }
+
+        function playFromURL() {
+            const url = document.getElementById('audio-url').value.trim();
+            if (!url) return;
+            
+            // Check if it's a YouTube video ID (11 chars, alphanumeric + _-)
+            const ytRegex = /^[a-zA-Z0-9_-]{11}$/;
+            if (ytRegex.test(url)) {
+                // It's a YouTube ID — use the YouTube iframe API approach
+                statusEl.innerText = "STATUS: YT DETECTED (AUDIO ONLY)";
+                lyricsText.innerHTML = '<span class="loading">> YOUTUBE AUDIO requires iframe API. Use direct MP3 URL for LRC sync.</span>';
+                return;
+            }
+
+            // Assume it's a direct audio URL
+            if (lrcData.length === 0) {
+                lyricsText.innerHTML = '<span style="color:#ff0000;">> No LRC data loaded. Press LRC to paste timestamped lyrics first.</span>';
+                return;
+            }
+
+            playAudio(url, null);
+            statusEl.innerText = "STATUS: STREAMING FROM URL";
+        }
+
+        function stopBroadcast() {
+            stopAllAudio();
+            stopSyncLoop();
+            isPlaying = false;
+            lrcLineElements.forEach(el => el.classList.remove('active', 'sung'));
+            progressFill.style.width = '0%';
+            timeDisplay.innerText = '00:00 / 00:00';
+            document.getElementById('fetch-btn').disabled = false;
+        }
+
+        function stopAllAudio() {
+            if (currentAudio) {
+                currentAudio.pause();
+                if (audioSource) {
+                    try { audioSource.disconnect(); } catch(e){}
+                }
+                currentAudio = null;
+                audioSource = null;
+            }
+            stopNoise();
+        }
+
+        // ============================================================
+        //  10. LRC EDITOR MODAL
+        // ============================================================
+        function openLRCEditor() {
+            // Pre-fill with existing LRC data if available
+            if (lrcData.length > 0) {
+                lrcTextarea.value = lrcData.map(l => {
+                    const mins = Math.floor(l.time / 60);
+                    const secs = l.time % 60;
+                    const mm = String(mins).padStart(2, '0');
+                    const ss = String(Math.floor(secs)).padStart(2, '0');
+                    const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                    return `[${mm}:${ss}.${xx}]${l.text}`;
+                }).join('\n');
+            } else {
+                // Provide a template
+                lrcTextarea.value = `[00:04.50]Ticking away the moments that make up a dull day
+[00:08.00]Fritter and waste the hours in an offhand way
+[00:12.00]Kicking around on a piece of ground in your hometown
+[00:16.00]Waiting for someone or something to show you the way`;
+            }
+            lrcModal.classList.add('open');
+        }
+
+        function closeLRCEditor() {
+            lrcModal.classList.remove('open');
+        }
+
+        function applyLRC() {
+            const text = lrcTextarea.value.trim();
+            if (!text) {
+                lrcData = [];
+                renderLRC([]);
+                closeLRCEditor();
+                return;
+            }
+
+            const parsed = parseLRC(text);
+            if (parsed.length === 0) {
+                // Try treating as plain text — create evenly spaced timestamps
+                const lines = text.split('\n').filter(l => l.trim());
+                const interval = 3; // 3 seconds between lines
+                lrcData = lines.map((line, i) => ({
+                    time: i * interval,
+                    text: line.trim()
+                }));
+            } else {
+                lrcData = parsed;
+            }
+
+            renderLRC(lrcData);
+            statusEl.innerText = `STATUS: LRC LOADED (${lrcData.length} lines)`;
+            closeLRCEditor();
+        }
+
+        // ============================================================
+        //  11. UTILITIES
+        // ============================================================
+        function formatTime(seconds) {
+            if (!seconds || isNaN(seconds)) return '00:00';
+            const m = Math.floor(seconds / 60);
+            const s = Math.floor(seconds % 60);
+            return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+        }
+
+        // ============================================================
+        //  12. CLOCK
+        // ============================================================
+        function updateClock() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.toLocaleTimeString('en-US', {hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+        });
+
+// Keyboard shortcut: Escape to close modal
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && lrcModal.classList.contains('open')) {
+                closeLRCEditor();
+            }
+        });
+
+        console.log("PHANTOM SIGNAL v5 â LRC SYNC ENGINE INITIALIZED");
+        console.log("Tip: Press LRC to paste timestamped lyrics, then LOAD a track.");
+        detectBackend();
+        drawOscilloscope();
+        loadFromHash();
+
+        function exportLRC() {
+            if (lrcData.length === 0) { statusEl.innerText = "STATUS: No lyrics to export"; return; }
+            const lrcText = lrcData.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            const blob = new Blob([lrcText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = (document.getElementById('artist').value || 'lyrics') + '_' + (document.getElementById('title').value || 'track') + '.lrc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            statusEl.innerText = 'STATUS: EXPORTED ' + lrcData.length + ' lines';
+        }
+
+        function copyLRC() {
+            if (lrcData.length === 0) { statusEl.innerText = "STATUS: No lyrics to copy"; return; }
+            const lrcText = lrcData.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            navigator.clipboard.writeText(lrcText).then(function() {
+                statusEl.innerText = "STATUS: COPIED TO CLIPBOARD";
+            }).catch(function() {
+                statusEl.innerText = "STATUS: COPY FAILED";
+            });
+        }
+
+        function shareURL() {
+            if (lrcData.length === 0) { statusEl.innerText = "STATUS: No lyrics to share"; return; }
+            const lrcText = lrcData.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(lrcText)));
+            const url = window.location.origin + window.location.pathname + '#' + encoded;
+            navigator.clipboard.writeText(url).then(function() {
+                statusEl.innerText = "STATUS: SHARE LINK COPIED";
+            }).catch(function() {
+                window.location.hash = encoded;
+                statusEl.innerText = "STATUS: LINK GENERATED (check address bar)";
+            });
+        }
+
+        function loadFromHash() {
+            const hash = window.location.hash.substring(1);
+            if (!hash) return false;
+            try {
+                const lrcText = decodeURIComponent(escape(atob(hash)));
+                const parsed = parseLRC(lrcText);
+                if (parsed.length > 0) {
+                    lrcData = parsed;
+                    renderLRC(lrcData);
+                    statusEl.innerText = 'STATUS: LRC LOADED FROM LINK (' + lrcData.length + ' lines)';
+                    return true;
+                }
+            } catch(e) {}
+            return false;
+        }
+    </script>
+</body>
+</html>

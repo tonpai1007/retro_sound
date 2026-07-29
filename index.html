@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHANTOM OS — Retro Computing Suite</title>
+    <link rel="stylesheet" href="crt-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050505;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: auto;
+        }
+        .crt-monitor {
+            width: 1100px;
+            height: 850px;
+            max-width: 98%;
+            min-height: 850px;
+        }
+        .crt-screen {
+            animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s;
+            padding: 15px;
+        }
+        .app-view { display: none; flex-direction: column; height: 100%; }
+        .app-view.active { display: flex; }
+
+        /* Top Navigation */
+        .os-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--phosphor);
+            padding-bottom: 8px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px var(--phosphor-glow);
+            flex-shrink: 0;
+        }
+        .os-title { font-size: 22px; }
+        .os-nav { display: flex; gap: 8px; flex-wrap: wrap; }
+        .os-nav-btn {
+            background: transparent;
+            border: 1px solid var(--phosphor);
+            color: var(--phosphor);
+            padding: 3px 10px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.15s;
+        }
+        .os-nav-btn:hover { background: var(--phosphor); color: #000; }
+        .os-nav-btn.active { background: var(--phosphor); color: #000; box-shadow: 0 0 10px var(--phosphor-glow); }
+
+        /* Boot Screen */
+        #boot-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--screen-bg);
+            z-index: 20;
+            padding: 25px;
+            font-size: 18px;
+            line-height: 1.5;
+            display: none;
+        }
+        #boot-screen.open { display: block; }
+    </style>
+</head>
+<body>
+    <div class="crt-monitor">
+        <div class="crt-screen">
+            <!-- Boot Overlay -->
+            <div id="boot-screen"></div>
+
+            <!-- Main OS Shell -->
+            <div class="os-header">
+                <div class="os-title">▓▒░ PHANTOM_OS v1.0 ░▒▓</div>
+                <div class="os-nav" id="main-nav">
+                    <button class="os-nav-btn" data-app="retro-crt" onclick="showApp('retro-crt')">RETRO CRT</button>
+                    <button class="os-nav-btn" data-app="retro-v2" onclick="showApp('retro-v2')">AMBER</button>
+                    <button class="os-nav-btn" data-app="retro-yt" onclick="showApp('retro-yt')">YT MUSIC</button>
+                    <button class="os-nav-btn" data-app="phantom-v4" onclick="showApp('phantom-v4')">PHANTOM v4</button>
+                    <button class="os-nav-btn" data-app="phantom-v5" onclick="showApp('phantom-v5')">LRC SYNC</button>
+                    <button class="os-nav-btn" data-app="dos-edit" onclick="showApp('dos-edit')">DOS EDIT</button>
+                    <button class="os-nav-btn" data-app="dj-mixer" onclick="showApp('dj-mixer')">DJ MIXER</button>
+                </div>
+                <div id="clock" style="font-size:18px;">00:00:00</div>
+            </div>
+
+            <!-- ==================== APP: RETRO CRT v1 ==================== -->
+            <section id="app-retro-crt" class="app-view active">
+                <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
+                    <div style="width:180px; display:flex; flex-direction:column; align-items:center; border-right:1px dashed var(--phosphor); padding-right:10px;">
+                        <pre id="cassette" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; color:var(--phosphor); text-shadow:0 0 5px var(--phosphor-glow);">
+  ┌───────────────┐
+  │  (O)=====(O)  │
+  │   ▓▓▓▓▓▓▓▓▓   │
+  └───────────────┘
+                        </pre>
+                        <div style="margin-top:10px; font-size:18px;">SIDE A</div>
+                    </div>
+                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="crt1-lyrics">> AWAITING INPUT...</div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: RETRO v2 ==================== -->
+            <section id="app-retro-v2" class="app-view">
+                <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
+                    <div style="width:250px; display:flex; flex-direction:column; border-right:1px dashed var(--phosphor); padding-right:15px;">
+                        <div id="spectrum" style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; font-size:22px; line-height:1; text-shadow:0 0 10px var(--phosphor-glow); margin-bottom:10px;"></div>
+                        <div style="border:1px solid var(--phosphor); padding:10px; text-align:center; font-size:14px;">
+                            <pre id="cassette-v2" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; margin-bottom:5px;">
+  ┌───────────────┐
+  │  (O)=====(O)  │
+  │   ▓▓▓▓▓▓▓▓▓   │
+  └───────────────┘
+                            </pre>
+                            <div id="tape-label-v2">NO TAPE LOADED</div>
+                        </div>
+                    </div>
+                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="v2-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: YT MUSIC v3 ==================== -->
+            <section id="app-retro-yt" class="app-view">
+                <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
+                    <div style="width:250px; display:flex; flex-direction:column; border-right:1px dashed var(--phosphor); padding-right:15px;">
+                        <div id="spectrum-yt" style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; font-size:22px; line-height:1; text-shadow:0 0 10px var(--phosphor-glow); margin-bottom:10px;"></div>
+                        <div style="border:1px solid var(--phosphor); padding:10px; text-align:center; font-size:14px;">
+                            <pre id="cassette-yt" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; margin-bottom:5px;">
+  ┌───────────────┐
+  │  (O)=====(O)  │
+  │   ▓▓▓▓▓▓▓▓▓   │
+  └───────────────┘
+                            </pre>
+                            <div id="tape-label-yt">NO TAPE LOADED</div>
+                        </div>
+                    </div>
+                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="yt-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: PHANTOM v4 ==================== -->
+            <section id="app-phantom-v4" class="app-view">
+                <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
+                    <div style="width:40%; display:flex; flex-direction:column; gap:15px; border-right:1px dashed var(--phosphor); padding-right:15px;">
+                        <div style="flex-grow:1; border:2px solid var(--phosphor); background:#000; box-shadow:inset 0 0 20px rgba(255,176,0,0.1); position:relative; overflow:hidden; min-height:120px;">
+                            <canvas id="oscilloscope" style="width:100%; height:100%; display:block;"></canvas>
+                        </div>
+                        <div style="border:2px solid var(--phosphor); padding:10px; text-align:center;">
+                            <div id="dial-display" style="font-size:32px; color:var(--neon-green); text-shadow:0 0 10px var(--neon-green); margin-bottom:10px;">88.0 FM</div>
+                            <input type="range" id="tuner" min="880" max="1080" value="880" oninput="tuneRadioV4()" style="width:100%; cursor:pointer; accent-color:var(--phosphor);">
+                            <div style="font-size:14px; color:#888; margin-top:5px;">TUNE DOWN FOR NUMBERS STATION</div>
+                        </div>
+                    </div>
+                    <div style="flex-grow:1; display:flex; flex-direction:column;">
+                        <div style="flex-grow:1; overflow-y:auto; font-size:24px; line-height:1.4; padding:10px; border:1px solid #333;" id="v4-lyrics">> AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>> TUNE BELOW 92.0 FOR PHANTOM STATION</div>
+                        <div id="v4-status" style="margin-top:10px; font-size:18px; color:var(--neon-green); text-shadow:0 0 5px var(--neon-green);">STATUS: STANDBY</div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: LRC SYNC v5 ==================== -->
+            <section id="app-phantom-v5" class="app-view">
+                <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
+                    <div style="width:40%; display:flex; flex-direction:column; gap:15px; border-right:1px dashed var(--phosphor); padding-right:15px;">
+                        <div style="flex-grow:1; border:2px solid var(--phosphor); background:#000; box-shadow:inset 0 0 20px rgba(255,176,0,0.1); position:relative; overflow:hidden; min-height:120px;">
+                            <canvas id="oscilloscope-v5" style="width:100%; height:100%; display:block;"></canvas>
+                        </div>
+                        <div style="border:2px solid var(--phosphor); padding:10px; text-align:center;">
+                            <div id="dial-display-v5" style="font-size:32px; color:var(--neon-green); text-shadow:0 0 10px var(--neon-green); margin-bottom:10px;">88.0 FM</div>
+                            <input type="range" id="tuner-v5" min="880" max="1080" value="880" oninput="tuneRadioV5()" style="width:100%; cursor:pointer; accent-color:var(--phosphor);">
+                            <div style="font-size:14px; color:#888; margin-top:5px;">TUNE DOWN FOR NUMBERS STATION</div>
+                        </div>
+                    </div>
+                    <div style="flex-grow:1; display:flex; flex-direction:column; min-width:0;">
+                        <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.4; padding:8px; border:1px solid #333;" id="v5-lyrics">> AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>> TUNE BELOW 92.0 FOR PHANTOM STATION<br>> PRESS LRC TO PASTE TIMESTAMPED LYRICS</div>
+                        <div style="width:100%; height:4px; background:#222; margin-top:6px; border-radius:2px; overflow:hidden;">
+                            <div id="progress-fill" style="height:100%; background:var(--neon-green); width:0%; box-shadow:0 0 10px var(--neon-green); transition:width 0.1s linear;"></div>
+                        </div>
+                        <div style="margin-top:8px; font-size:16px; color:var(--neon-green); text-shadow:0 0 5px var(--neon-green); display:flex; justify-content:space-between;">
+                            <span id="v5-status">STATUS: STANDBY</span>
+                            <span id="time-display">00:00 / 00:00</span>
+                        </div>
+                        <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
+                            <button class="deck-btn" onclick="exportLRC()">EXPORT</button>
+                            <button class="deck-btn" onclick="copyLRC()">COPY</button>
+                            <button class="deck-btn" onclick="shareURL()">SHARE</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: DOS EDIT ==================== -->
+            <section id="app-dos-edit" class="app-view">
+                <div style="display:flex; flex-direction:column; height:100%;">
+                    <div style="background:var(--phosphor); color:#000; padding:2px 10px; font-size:22px; font-weight:bold; display:flex; justify-content:space-between; flex-shrink:0;">
+                        <span id="dos-filename">UNTITLED.BAT</span>
+                        <span id="dos-save">NEW</span>
+                    </div>
+                    <div style="flex-grow:1; position:relative; overflow:hidden;">
+                        <pre id="dos-output" style="position:absolute; top:0; left:0; width:100%; height:100%; margin:0; padding:10px 15px; font-family:'VT323',monospace; font-size:22px; line-height:1.3; color:var(--phosphor); text-shadow:0 0 5px var(--phosphor-dim); white-space:pre-wrap; word-wrap:break-word; pointer-events:none; overflow:hidden; z-index:1;"></pre>
+                        <textarea id="dos-input" spellcheck="false" style="position:absolute; top:0; left:0; width:100%; height:100%; background:transparent; border:none; outline:none; resize:none; color:transparent; caret-color:var(--phosphor); font-family:'VT323',monospace; font-size:22px; line-height:1.3; padding:10px 15px; box-sizing:border-box; z-index:2; white-space:pre-wrap; word-wrap:break-word; overflow:auto;"></textarea>
+                    </div>
+                    <div style="background:#000; color:var(--phosphor); padding:2px 10px; font-size:18px; border-top:1px solid #333; display:flex; justify-content:space-between; flex-shrink:0;">
+                        <span id="dos-line">Ln 1, Col 1</span>
+                        <span>UTF-8 | DOS v2.0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: DJ MIXER v6 ==================== -->
+            <section id="app-dj-mixer" class="app-view">
+                <div style="display:flex; gap:12px; flex-grow:1; min-height:0;">
+                    <!-- DECK A -->
+                    <div style="flex:1; border:1px solid var(--neon-cyan); padding:10px; display:flex; flex-direction:column; gap:8px; box-shadow:inset 0 0 20px rgba(0,255,255,0.1); min-width:0;">
+                        <div style="font-size:20px; padding-bottom:6px; border-bottom:1px dashed var(--phosphor); text-align:center; color:var(--neon-cyan); text-shadow:0 0 8px rgba(0,255,255,0.7);">DECK A [CYAN]</div>
+                        <input type="text" class="deck-input" id="a-ytid" placeholder="YT Video ID" title="YouTube Video ID" style="background:transparent; border:none; border-bottom:1px solid var(--neon-cyan); color:var(--neon-cyan); font-family:'VT323',monospace; font-size:16px; outline:none; text-shadow:0 0 5px rgba(0,255,255,0.5); padding:2px; width:100%;">
+                        <div id="a-title-display" style="font-size:16px; text-align:center; color:#888; min-height:18px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">NO TRACK LOADED</div>
+                        <div id="a-waveform" style="height:50px; background:#000; border:1px solid #333; display:flex; align-items:center; justify-content:center; gap:1px; font-size:14px; overflow:hidden; color:var(--neon-cyan); text-shadow:0 0 5px rgba(0,255,255,0.5);"></div>
+                        <div id="a-time" style="font-size:24px; text-align:center; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan);">00:00 / 00:00</div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:14px;"><span>VOL</span><input type="range" id="a-vol" min="0" max="100" value="80" style="flex:1; cursor:pointer; accent-color:var(--neon-cyan);"></div>
+                        <div id="a-bpm" onclick="editBPM('a')" style="font-size:32px; text-align:center; padding:8px; border:1px dashed #333; color:#ffff00; text-shadow:0 0 10px #ffff00; cursor:pointer;">-- BPM</div>
+                        <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                            <button class="deck-btn" onclick="loadDeck('a')">LOAD</button>
+                            <button class="deck-btn" id="a-play" onclick="togglePlay('a')">PLAY</button>
+                            <button class="deck-btn" onclick="cueDeck('a')">CUE</button>
+                        </div>
+                        <div id="a-yt-status" style="font-size:12px; color:#ff8800; text-shadow:0 0 5px rgba(255,136,0,0.5); text-align:center;">YT PLAYER: INITIALIZING...</div>
+                    </div>
+
+                    <!-- MIXER -->
+                    <div style="width:120px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
+                        <div class="crossfader-label" style="font-size:14px; color:#888; text-align:center;">CROSSFADER</div>
+                        <input type="range" class="crossfader-container" id="xfader" min="0" max="100" value="50" style="writing-mode:bt-lr; -webkit-appearance:slider-vertical; width:40px; height:250px; accent-color:var(--phosphor); cursor:pointer;">
+                        <div class="crossfader-label" id="xfader-display" style="font-size:14px; color:#888; text-align:center; white-space:nowrap;">A 1.00 | B 1.00</div>
+                        <button class="master-btn" onclick="syncBPM()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">SYNC</button>
+                        <button class="master-btn" onclick="playBoth()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">PLAY</button>
+                        <button class="master-btn" onclick="pauseBoth()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">PAUSE</button>
+                        <button class="master-btn danger" onclick="stopAll()" style="background:transparent; border:2px solid #ff3333; color:#ff3333; padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px #ff3333;">STOP</button>
+                    </div>
+
+                    <!-- DECK B -->
+                    <div style="flex:1; border:1px solid var(--neon-magenta); padding:10px; display:flex; flex-direction:column; gap:8px; box-shadow:inset 0 0 20px rgba(255,0,255,0.1); min-width:0;">
+                        <div style="font-size:20px; padding-bottom:6px; border-bottom:1px dashed var(--phosphor); text-align:center; color:var(--neon-magenta); text-shadow:0 0 8px rgba(255,0,255,0.7);">DECK B [MAGENTA]</div>
+                        <input type="text" class="deck-input" id="b-ytid" placeholder="YT Video ID" title="YouTube Video ID" style="background:transparent; border:none; border-bottom:1px solid var(--neon-magenta); color:var(--neon-magenta); font-family:'VT323',monospace; font-size:16px; outline:none; text-shadow:0 0 5px rgba(255,0,255,0.5); padding:2px; width:100%;">
+                        <div id="b-title-display" style="font-size:16px; text-align:center; color:#888; min-height:18px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">NO TRACK LOADED</div>
+                        <div id="b-waveform" style="height:50px; background:#000; border:1px solid #333; display:flex; align-items:center; justify-content:center; gap:1px; font-size:14px; overflow:hidden; color:var(--neon-magenta); text-shadow:0 0 5px rgba(255,0,255,0.5);"></div>
+                        <div id="b-time" style="font-size:24px; text-align:center; letter-spacing:2px; color:var(--neon-magenta); text-shadow:0 0 10px var(--neon-magenta);">00:00 / 00:00</div>
+                        <div style="display:flex; align-items:center; gap:6px; font-size:14px;"><span>VOL</span><input type="range" id="b-vol" min="0" max="100" value="80" style="flex:1; cursor:pointer; accent-color:var(--neon-magenta);"></div>
+                        <div id="b-bpm" onclick="editBPM('b')" style="font-size:32px; text-align:center; padding:8px; border:1px dashed #333; color:#ffff00; text-shadow:0 0 10px #ffff00; cursor:pointer;">-- BPM</div>
+                        <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
+                            <button class="deck-btn" onclick="loadDeck('b')">LOAD</button>
+                            <button class="deck-btn" id="b-play" onclick="togglePlay('b')">PLAY</button>
+                            <button class="deck-btn" onclick="cueDeck('b')">CUE</button>
+                        </div>
+                        <div id="b-yt-status" style="font-size:12px; color:#ff8800; text-shadow:0 0 5px rgba(255,136,0,0.5); text-align:center;">YT PLAYER: INITIALIZING...</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- Hidden YouTube Containers -->
+    <div id="a-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+    <div id="b-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+
+    <script>
+    // ============================================================
+    //  PHANTOM OS — Single Page Application Router + Shared Engine
+    // ============================================================
+
+    let currentApp = 'retro-crt';
+
+    function showApp(name) {
+        if (currentApp === name) return;
+        const prevApp = currentApp;
+        currentApp = name;
+        document.querySelectorAll('.app-view').forEach(v => v.classList.remove('active'));
+        const target = document.getElementById('app-' + name);
+        if (target) target.classList.add('active');
+        document.querySelectorAll('.os-nav-btn').forEach(b => b.classList.remove('active'));
+        const navBtn = document.querySelector('.os-nav-btn[data-app="' + name + '"]');
+        if (navBtn) navBtn.classList.add('active');
+        if (prevApp === 'retro-crt') unmountRetroCrt();
+        if (prevApp === 'retro-v2') unmountRetroV2();
+        if (prevApp === 'dos-edit') unmountDosEdit();
+        if (prevApp === 'dj-mixer') unmountDJMixer();
+        if (name === 'retro-crt') mountRetroCrt();
+        if (name === 'retro-v2') mountRetroV2();
+        if (name === 'dos-edit') mountDosEdit();
+        if (name === 'dj-mixer') mountDJMixer();
+        if (name === 'dos-edit') {
+            const input = document.getElementById('dos-input');
+            if (input) input.focus();
+        }
+    }
+
+    // Init nav and mount default app
+    showApp('retro-crt');
+    mountRetroCrt();
+
+    // Boot sequence
+    function boot() {
+        const screen = document.getElementById('boot-screen');
+        screen.classList.add('open');
+        screen.innerHTML = 'AMIBIOS (C) 1985-2024 AMERICAN MEGATRENDS INC.<br>CPU: ZILOG Z80 @ 3.58 MHZ<br>MEMORY TEST: 65536 KB OK<br><br>LOADING PHANTOM_OS KERNEL... [OK]<br>MOUNTING /DEV/CRT... [OK]<br>INITIALIZING AUDIO_DRIVER.SYS... [OK]<br><br>SYSTEM READY.<br><br>C:\\>';
+        setTimeout(() => screen.classList.remove('open'), 2500);
+    }
+    window.onload = boot;
+
+    // Clock
+    function updateClock() {
+        const d = new Date();
+        document.getElementById('clock').innerText = d.toLocaleTimeString('en-US', {hour12: false});
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // ============================================================
+    //  APP 1: RETRO CRT v1
+    // ============================================================
+    let beatTimer1 = null, audioCtx1 = null, reelState1 = 0;
+    const reels1 = ['O','0','@','0'];
+    const sleep1 = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+    function playBeat1() {
+        if (!audioCtx1) audioCtx1 = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx1.createOscillator();
+        const gain = audioCtx1.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, audioCtx1.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx1.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.8, audioCtx1.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx1.currentTime + 0.1);
+        osc.connect(gain); gain.connect(audioCtx1.destination);
+        osc.start(); osc.stop(audioCtx1.currentTime + 0.1);
+    }
+    function updateCassette1() {
+        reelState1 = (reelState1 + 1) % reels1.length;
+        const r = reels1[reelState1];
+        const tape = Math.random() > 0.5 ? '▓' : '▒';
+        document.getElementById('cassette').innerText = `  ┌───────────────┐\n  │  (${r})=====(${r})  │\n  │   ${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}   │\n  └───────────────┘`;
+    }
+    async function startCrt1() {
+        stopCrt1();
+        const artist = prompt('ARTIST:');
+        const title = prompt('TITLE:');
+        const bpm = parseInt(prompt('BPM:', '120')) || 120;
+        if (!artist || !title) return;
+        const ms = 60000 / bpm;
+        beatTimer1 = setInterval(() => { updateCassette1(); playBeat1(); }, ms);
+        document.getElementById('crt1-lyrics').innerHTML = '<span class="crt-loading">> LOADING...</span>';
+        try {
+            const res = await fetch('https://api.lyrics.ovh/v1/' + encodeURIComponent(artist) + '/' + encodeURIComponent(title));
+            const data = await res.json();
+            if (data.lyrics) {
+                const lines = data.lyrics.split('\n');
+                document.getElementById('crt1-lyrics').innerHTML = '';
+                for (const line of lines) {
+                    const span = document.createElement('span');
+                    span.innerHTML = line + '<br>';
+                    document.getElementById('crt1-lyrics').appendChild(span);
+                    await sleep1(ms / 2);
+                }
+            } else {
+                document.getElementById('crt1-lyrics').innerHTML = '> LYRICS NOT FOUND';
+            }
+        } catch(e) { document.getElementById('crt1-lyrics').innerHTML = '> NETWORK ERROR'; }
+    }
+    function stopCrt1() { if (beatTimer1) clearInterval(beatTimer1); beatTimer1 = null; }
+    document.getElementById('crt1-lyrics').addEventListener('click', startCrt1);
+
+    // ============================================================
+    //  APP 2: RETRO v2
+    // ============================================================
+    let beatTimer2 = null, audioCtx2 = null, reelState2 = 0, beatCounter2 = 0;
+    const reels2 = ['O','0','@','0'];
+    const blocks2 = " ▁▂▃▄▅▆▇█";
+
+    function playChiptune2() {
+        if (!audioCtx2) audioCtx2 = new (window.AudioContext || window.webkitAudioContext)();
+        const osc = audioCtx2.createOscillator();
+        const gain = audioCtx2.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(150, audioCtx2.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(40, audioCtx2.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.6, audioCtx2.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx2.currentTime + 0.1);
+        osc.connect(gain); gain.connect(audioCtx2.destination);
+        osc.start(); osc.stop(audioCtx2.currentTime + 0.1);
+        if (beatCounter2 % 2 === 0) {
+            const bass = audioCtx2.createOscillator();
+            const bg = audioCtx2.createGain();
+            const notes = [110, 146.83, 164.81, 130.81];
+            const note = notes[Math.floor(beatCounter2 / 2) % notes.length];
+            bass.type = 'square';
+            bass.frequency.setValueAtTime(note, audioCtx2.currentTime);
+            bg.gain.setValueAtTime(0.2, audioCtx2.currentTime);
+            bg.gain.exponentialRampToValueAtTime(0.001, audioCtx2.currentTime + 0.2);
+            bass.connect(bg); bg.connect(audioCtx2.destination);
+            bass.start(); bass.stop(audioCtx2.currentTime + 0.2);
+        }
+    }
+    function updateViz2() {
+        reelState2 = (reelState2 + 1) % reels2.length;
+        const r = reels2[reelState2];
+        const tape = Math.random() > 0.5 ? '▓' : '▒';
+        document.getElementById('cassette-v2').innerText = `  ┌───────────────┐\n  │  (${r})=====(${r})  │\n  │   ${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}   │\n  └───────────────┘`;
+        const spec = document.getElementById('spectrum');
+        spec.innerHTML = '';
+        for (let i = 0; i < 15; i++) {
+            const bar = document.createElement('span');
+            bar.innerText = blocks2[Math.floor(Math.random() * 8)];
+            bar.style.width = '10px';
+            bar.style.textAlign = 'center';
+            bar.style.transition = 'height 0.05s linear';
+            spec.appendChild(bar);
+            spec.appendChild(spec.children[14 - i].cloneNode(true));
+        }
+    }
+    async function startV2() {
+        stopV2();
+        const artist = prompt('ARTIST:');
+        const title = prompt('TITLE:');
+        const bpm = parseInt(prompt('BPM:', '130')) || 130;
+        if (!artist || !title) return;
+        const ms = 60000 / bpm;
+        beatTimer2 = setInterval(() => { updateViz2(); playChiptune2(); beatCounter2++; }, ms);
+        document.getElementById('tape-label-v2').innerText = artist.toUpperCase().substring(0, 15);
+        document.getElementById('v2-lyrics').innerHTML = '<span class="crt-loading">> QUERYING DATABASE...</span>';
+        try {
+            const res = await fetch('https://api.lyrics.ovh/v1/' + encodeURIComponent(artist) + '/' + encodeURIComponent(title));
+            const data = await res.json();
+            if (data.lyrics) {
+                const lines = data.lyrics.split('\n');
+                document.getElementById('v2-lyrics').innerHTML = '';
+                for (const line of lines) {
+                    const span = document.createElement('span');
+                    span.innerHTML = line + '<br>';
+                    document.getElementById('v2-lyrics').appendChild(span);
+                    await sleep1(ms / 2);
+                }
+            } else {
+                document.getElementById('v2-lyrics').innerHTML = '> TRACK NOT FOUND';
+            }
+        } catch(e) { document.getElementById('v2-lyrics').innerHTML = '> NETWORK ERROR'; }
+    }
+    function stopV2() { if (beatTimer2) clearInterval(beatTimer2); beatTimer2 = null; beatCounter2 = 0; }
+    document.getElementById('v2-lyrics').addEventListener('click', startV2);
+
+    // ============================================================
+    //  APP 3: YOUTUBE MUSIC v3
+    // ============================================================
+    let ytPlayerV3 = null;
+    let beatTimer3 = null, reelState3 = 0;
+
+    function updateYT3() {
+        reelState3 = (reelState3 + 1) % reels2.length;
+        const r = reels2[reelState3];
+        const tape = Math.random() > 0.5 ? '▓' : '▒';
+        document.getElementById('cassette-yt').innerText = `  ┌───────────────┐\n  │  (${r})=====(${r})  │\n  │   ${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}   │\n  └───────────────┘`;
+    }
+    function startYT3() {
+        const ytId = prompt('YOUTUBE VIDEO ID:');
+        if (!ytId) return;
+        if (!ytPlayerV3) {
+            ytPlayerV3 = new YT.Player('a-yt-container', { height: '1', width: '1', videoId: '', playerVars: { autoplay: 0, controls: 0 }, events: { onReady: () => {}, onStateChange: (e) => {} } });
+        }
+        ytPlayerV3.loadVideoById(ytId);
+        document.getElementById('tape-label-yt').innerText = 'YT: ' + ytId;
+        const ms = 500;
+        beatTimer3 = setInterval(updateYT3, ms);
+    }
+    document.getElementById('yt-lyrics').addEventListener('click', startYT3);
+
+    // ============================================================
+    //  APP 4: PHANTOM v4
+    // ============================================================
+    let noiseSource4 = null, audioCtx4 = null, analyser4 = null;
+    function initAudio4() {
+        if (!audioCtx4) {
+            audioCtx4 = new (window.AudioContext || window.webkitAudioContext)();
+            analyser4 = audioCtx4.createAnalyser();
+            analyser4.fftSize = 2048;
+            analyser4.connect(audioCtx4.destination);
+        }
+        if (audioCtx4.state === 'suspended') audioCtx4.resume();
+    }
+    function drawOsc4() {
+        const canvas = document.getElementById('oscilloscope');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth * 2;
+        canvas.height = canvas.offsetHeight * 2;
+        const bufferLength = analyser4 ? analyser4.frequencyBinCount : 1024;
+        const dataArray = new Uint8Array(bufferLength);
+        if (analyser4) analyser4.getByteTimeDomainData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 4; ctx.strokeStyle = '#FFB000'; ctx.shadowBlur = 10; ctx.shadowColor = '#FFB000'; ctx.beginPath();
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            let v = (analyser4 && noiseSource4) ? dataArray[i] / 128.0 : 1 + Math.sin(i * 0.05 + Date.now() * 0.005) * 0.02;
+            const y = (v * canvas.height) / 2;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            x += sliceWidth;
+        }
+        ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
+        requestAnimationFrame(drawOsc4);
+    }
+    drawOsc4();
+    function tuneRadioV4() {
+        const freq = parseInt(document.getElementById('tuner').value);
+        document.getElementById('dial-display').innerText = (freq / 10).toFixed(1) + ' FM';
+        initAudio4();
+        if (noiseSource4) { try { noiseSource4.stop(); } catch(e){} noiseSource4 = null; }
+        if (freq < 920) {
+            document.getElementById('v4-status').innerText = 'STATUS: PHANTOM STATION DETECTED';
+            const bufferSize = audioCtx4.sampleRate * 2;
+            const buffer = audioCtx4.createBuffer(1, bufferSize, audioCtx4.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            noiseSource4 = audioCtx4.createBufferSource();
+            noiseSource4.buffer = buffer; noiseSource4.loop = true;
+            const g = audioCtx4.createGain(); g.gain.value = 0.08;
+            noiseSource4.connect(g); g.connect(analyser4); noiseSource4.start();
+            const u = new SpeechSynthesisUtterance();
+            u.text = [Math.floor(Math.random()*10), Math.floor(Math.random()*10), Math.floor(Math.random()*10)].join('... ');
+            u.pitch = 0.1; u.rate = 0.7; speechSynthesis.speak(u);
+        } else if (freq > 1040) {
+            document.getElementById('v4-status').innerText = 'STATUS: MUSIC BAND';
+        } else {
+            document.getElementById('v4-status').innerText = 'STATUS: DEAD AIR...';
+        }
+    }
+
+    // ============================================================
+    //  APP 5: LRC SYNC v5 (Simplified for SPA)
+    // ============================================================
+    let audioCtx5 = null, analyser5 = null, noiseSource5 = null;
+    function initAudio5() {
+        if (!audioCtx5) {
+            audioCtx5 = new (window.AudioContext || window.webkitAudioContext)();
+            analyser5 = audioCtx5.createAnalyser();
+            analyser5.fftSize = 2048;
+            analyser5.connect(audioCtx5.destination);
+        }
+        if (audioCtx5.state === 'suspended') audioCtx5.resume();
+    }
+    function drawOsc5() {
+        const canvas = document.getElementById('oscilloscope-v5');
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth * 2;
+        canvas.height = canvas.offsetHeight * 2;
+        const bufferLength = analyser5 ? analyser5.frequencyBinCount : 1024;
+        const dataArray = new Uint8Array(bufferLength);
+        if (analyser5) analyser5.getByteTimeDomainData(dataArray);
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        ctx.lineWidth = 4; ctx.strokeStyle = '#FFB000'; ctx.shadowBlur = 10; ctx.shadowColor = '#FFB000'; ctx.beginPath();
+        const sliceWidth = canvas.width / bufferLength;
+        let x = 0;
+        for (let i = 0; i < bufferLength; i++) {
+            let v = (analyser5 && noiseSource5) ? dataArray[i] / 128.0 : 1 + Math.sin(i * 0.05 + Date.now() * 0.005) * 0.02;
+            const y = (v * canvas.height) / 2;
+            if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
+            x += sliceWidth;
+        }
+        ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
+        requestAnimationFrame(drawOsc5);
+    }
+    drawOsc5();
+    function tuneRadioV5() {
+        const freq = parseInt(document.getElementById('tuner-v5').value);
+        document.getElementById('dial-display-v5').innerText = (freq / 10).toFixed(1) + ' FM';
+        initAudio5();
+        if (noiseSource5) { try { noiseSource5.stop(); } catch(e){} noiseSource5 = null; }
+        if (freq < 920) {
+            document.getElementById('v5-status').innerText = 'STATUS: PHANTOM STATION';
+            const bufferSize = audioCtx5.sampleRate * 2;
+            const buffer = audioCtx5.createBuffer(1, bufferSize, audioCtx5.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            noiseSource5 = audioCtx5.createBufferSource();
+            noiseSource5.buffer = buffer; noiseSource5.loop = true;
+            const g = audioCtx5.createGain(); g.gain.value = 0.08;
+            noiseSource5.connect(g); g.connect(analyser5); noiseSource5.start();
+        } else if (freq > 1040) {
+            document.getElementById('v5-status').innerText = 'STATUS: MUSIC BAND';
+        } else {
+            document.getElementById('v5-status').innerText = 'STATUS: DEAD AIR...';
+        }
+    }
+
+    // ============================================================
+    //  APP 6: DOS EDIT
+    // ============================================================
+    const dosInput = document.getElementById('dos-input');
+    const dosOutput = document.getElementById('dos-output');
+    const dosFilename = document.getElementById('dos-filename');
+    const dosSave = document.getElementById('dos-save');
+    const dosLine = document.getElementById('dos-line');
+
+    function escHtml(s) {
+        return s.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&';
+            if (m === '<') return '<';
+            return '>';
+        });
+    }
+
+    function highlightDos(text) {
+        text = escHtml(text);
+        const ph = [];
+        text = text.replace(/(\/\/[^\n]*)/g, function(m) { ph.push('<span class="syntax-comment">' + m + '</span>'); return '___P' + (ph.length - 1) + '___'; });
+        text = text.replace(/("(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'|`(?:[^`\\]|\\.)*`)/g, function(m) { ph.push('<span class="syntax-string">' + m + '</span>'); return '___P' + (ph.length - 1) + '___'; });
+        var keywords = ['var','let','const','function','if','else','return','for','while','true','false','null','undefined','async','await','new','class'];
+        var kwRegex = new RegExp('\\b(' + keywords.join('|') + ')\\b', 'g');
+        text = text.replace(kwRegex, '<span class="syntax-keyword">$1</span>');
+        text = text.replace(/\b([a-zA-Z_$][\w$]*)\s*\(/g, '<span class="syntax-func">$1</span>(');
+        text = text.replace(/\b(\d+\.?\d*)\b/g, '<span class="syntax-number">$1</span>');
+        text = text.replace(/___P(\d+)___/g, function(m, idx) { return ph[parseInt(idx)] || m; });
+        return text;
+    }
+
+    function syncDos() {
+        const text = dosInput.value;
+        localStorage.setItem('msdos_edit_file', text);
+        dosSave.innerText = 'SAVED';
+        dosOutput.innerHTML = highlightDos(text);
+        dosOutput.scrollTop = dosInput.scrollTop;
+        dosOutput.scrollLeft = dosInput.scrollLeft;
+        const t = text.substring(0, dosInput.selectionStart).split('\n');
+        dosLine.innerText = 'Ln ' + t.length + ', Col ' + (t[t.length - 1].length + 1);
+    }
+
+    dosInput.addEventListener('input', () => {
+        dosSave.innerText = 'TYPING...';
+        clearTimeout(window.dosTimer);
+        window.dosTimer = setTimeout(syncDos, 200);
+        dosOutput.innerHTML = highlightDos(dosInput.value);
+        dosOutput.scrollTop = dosInput.scrollTop;
+        const t = dosInput.value.substring(0, dosInput.selectionStart).split('\n');
+        dosLine.innerText = 'Ln ' + t.length + ', Col ' + (t[t.length - 1].length + 1);
+    });
+    dosInput.addEventListener('scroll', () => { dosOutput.scrollTop = dosInput.scrollTop; dosOutput.scrollLeft = dosInput.scrollLeft; });
+    window.addEventListener('load', () => {
+        const saved = localStorage.getItem('msdos_edit_file');
+        dosInput.value = saved || '// WELCOME TO DOS EDIT v2 (SPA)\n// Click here and start typing\n\nfunction init() {\n  console.log("Phantom OS loaded");\n}\n';
+        syncDos();
+    });
+
+// --- MODULE SCRIPT LOADING ---
+    const moduleScripts = [
+        'assets/js/apps/retro-crt.js',
+        'assets/js/apps/retro-v2.js',
+        'assets/js/apps/dos-edit.js',
+        'assets/js/apps/dj-mixer.js'
+    ];
+    moduleScripts.forEach(function(src) {
+        const s = document.createElement('script');
+        s.src = src;
+        s.async = false;
+        document.head.appendChild(s);
+    });
+
+    // Aliases for inline onclick handlers (DJ mixer aliases now handled by dj-mixer.js module)
+    function togglePlay(deck) { if (typeof togglePlay6 === 'function') togglePlay6(deck); }
+    function cueDeck(deck) { if (typeof cueDeck6 === 'function') cueDeck6(deck); }
+    function loadDeck(deck) { if (typeof loadDeck6 === 'function') loadDeck6(deck); }
+    function playBoth() { if (typeof playBoth6 === 'function') playBoth6(); }
+    function pauseBoth() { if (typeof pauseBoth6 === 'function') pauseBoth6(); }
+    function stopAll() { if (typeof stopAll6 === 'function') stopAll6(); }
+    function editBPM(deck) { if (typeof editBPM6 === 'function') editBPM6(deck); }
+    function syncBPM() { if (typeof syncBPM6 === 'function') syncBPM6(); }
+
+    // --- SHARE / EXPORT ---
+        function exportLRC() {
+            alert('Press LRC to paste timestamped lyrics first, then use Export to download the .lrc file.');
+        }
+        function copyLRC() {
+            alert('Press LRC to paste timestamped lyrics first, then use Copy to copy the .lrc text.');
+        }
+        function shareURL() {
+            alert('Press LRC to paste timestamped lyrics first, then use Share to generate a share link.');
+        }
+
+        // --- LRC GENERATOR (backend-aware) ---
+        async function generateLRC(lyrics, duration) {
+            if (backendAvailable) {
+                try {
+                    const resp = await fetch('/api/lrc/generate', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ lyrics: lyrics, duration: duration || 30 })
+                    });
+                    const data = await resp.json();
+                    if (data.lrc && data.lrc.length > 0) return data.lrc;
+                } catch(e) {}
+            }
+            return null;
+        }
+
+        // --- BACKEND DETECTION ---
+        let backendAvailable = false;
+        async function detectBackend() {
+            try {
+                const resp = await fetch('/api/health', { method: 'HEAD', cache: 'no-store' });
+                backendAvailable = resp.ok;
+            } catch(e) { backendAvailable = false; }
+        }
+        detectBackend();
+    </script>
+</body>
+</html>

@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHANTOM DJ v6 — YouTube Music Mixer</title>
+    <link rel="stylesheet" href="crt-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050505;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: auto;
+        }
+        .crt-monitor {
+            width: 1100px;
+            height: 820px;
+            max-width: 98%;
+            min-height: 820px;
+        }
+        .crt-screen {
+            animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s;
+            padding: 15px;
+        }
+        .main-content {
+            display: flex;
+            gap: 12px;
+            flex-grow: 1;
+            min-height: 0;
+        }
+        .deck {
+            flex: 1;
+            border: 1px solid var(--phosphor);
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            box-shadow: inset 0 0 20px rgba(255,176,0,0.1);
+            min-width: 0;
+        }
+        .deck.deck-a { border-color: var(--neon-cyan); box-shadow: inset 0 0 20px rgba(0,255,255,0.1); }
+        .deck.deck-b { border-color: var(--neon-magenta); box-shadow: inset 0 0 20px rgba(255,0,255,0.1); }
+        .deck-header {
+            font-size: 20px;
+            padding-bottom: 6px;
+            border-bottom: 1px dashed var(--phosphor);
+            text-align: center;
+            text-shadow: 0 0 8px var(--phosphor-glow);
+        }
+        .deck.deck-a .deck-header { color: var(--neon-cyan); text-shadow: 0 0 8px rgba(0,255,255,0.7); }
+        .deck.deck-b .deck-header { color: var(--neon-magenta); text-shadow: 0 0 8px rgba(255,0,255,0.7); }
+        .deck-input {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--phosphor);
+            color: var(--phosphor);
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            outline: none;
+            text-shadow: 0 0 5px var(--phosphor-glow);
+            padding: 2px;
+            width: 100%;
+        }
+        .deck.deck-a .deck-input { border-bottom-color: var(--neon-cyan); color: var(--neon-cyan); text-shadow: 0 0 5px rgba(0,255,255,0.5); }
+        .deck.deck-b .deck-input { border-bottom-color: var(--neon-magenta); color: var(--neon-magenta); text-shadow: 0 0 5px rgba(255,0,255,0.5); }
+        .waveform {
+            height: 50px;
+            background: #000;
+            border: 1px solid #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1px;
+            font-size: 14px;
+            overflow: hidden;
+            color: var(--phosphor);
+            text-shadow: 0 0 5px var(--phosphor-glow);
+        }
+        .deck.deck-a .waveform { color: var(--neon-cyan); text-shadow: 0 0 5px rgba(0,255,255,0.5); }
+        .deck.deck-b .waveform { color: var(--neon-magenta); text-shadow: 0 0 5px rgba(255,0,255,0.5); }
+        .waveform-bar { width: 3px; background: currentColor; transition: height 0.05s; opacity: 0.7; }
+        .track-title { font-size: 16px; text-align: center; color: #888; min-height: 18px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+        .time-display { font-size: 24px; text-align: center; letter-spacing: 2px; }
+        .deck.deck-a .time-display { color: var(--neon-cyan); text-shadow: 0 0 10px var(--neon-cyan); }
+        .deck.deck-b .time-display { color: var(--neon-magenta); text-shadow: 0 0 10px var(--neon-magenta); }
+        .deck-controls { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+        .deck-btn {
+            background: transparent;
+            border: 1px solid var(--phosphor);
+            color: var(--phosphor);
+            padding: 4px 10px;
+            font-family: 'VT323', monospace;
+            font-size: 16px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.15s;
+        }
+        .deck-btn:hover { background: var(--phosphor); color: #000; box-shadow: 0 0 10px var(--phosphor-glow); }
+        .deck-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+        .deck.deck-a .deck-btn { border-color: var(--neon-cyan); color: var(--neon-cyan); }
+        .deck.deck-a .deck-btn:hover { background: var(--neon-cyan); color: #000; box-shadow: 0 0 10px var(--neon-cyan); }
+        .deck.deck-b .deck-btn { border-color: var(--neon-magenta); color: var(--neon-magenta); }
+        .deck.deck-b .deck-btn:hover { background: var(--neon-magenta); color: #000; box-shadow: 0 0 10px var(--neon-magenta); }
+        .deck-btn.active { background: var(--phosphor); color: #000; }
+        .bpm-display {
+            font-size: 32px;
+            text-align: center;
+            padding: 8px;
+            border: 1px dashed #333;
+            color: #ffff00;
+            text-shadow: 0 0 10px #ffff00;
+            cursor: pointer;
+        }
+        .mixer-section {
+            width: 120px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            align-items: center;
+            justify-content: center;
+        }
+        .crossfader-container {
+            writing-mode: bt-lr;
+            -webkit-appearance: slider-vertical;
+            width: 40px;
+            height: 250px;
+            accent-color: var(--phosphor);
+            cursor: pointer;
+        }
+        .crossfader-label {
+            font-size: 14px;
+            color: #888;
+            text-align: center;
+            white-space: nowrap;
+        }
+        .master-controls {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            align-items: center;
+        }
+        .master-btn {
+            background: transparent;
+            border: 2px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 8px 20px;
+            font-family: 'VT323', monospace;
+            font-size: 18px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.2s;
+            text-shadow: 0 0 8px var(--neon-green);
+        }
+        .master-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 20px var(--neon-green); }
+        .master-btn.danger { border-color: #ff3333; color: #ff3333; text-shadow: 0 0 8px #ff3333; }
+        .master-btn.danger:hover { background: #ff3333; color: #000; }
+        .header {
+            font-size: 20px;
+            border-bottom: 2px solid var(--phosphor);
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px var(--phosphor-glow);
+            display: flex;
+            justify-content: space-between;
+            z-index: 5;
+        }
+        .header .badge {
+            font-size: 11px;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            padding: 0 5px;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        .status-bar {
+            margin-top: 8px;
+            font-size: 14px;
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+            display: flex;
+            justify-content: space-between;
+        }
+        .vhs-tracking {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 30px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.08), transparent);
+            z-index: 12;
+            opacity: 0;
+            pointer-events: none;
+        }
+        .yt-status { font-size: 12px; color: #ff8800; text-shadow: 0 0 5px rgba(255,136,0,0.5); text-align: center; }
+        input[type="range"].slider-h {
+            width: 100%;
+            cursor: pointer;
+            accent-color: var(--phosphor);
+        }
+        .volume-row { display: flex; align-items: center; gap: 6px; font-size: 14px; }
+        .volume-row input { flex: 1; }
+        .record-indicator {
+            display: inline-block;
+            width: 10px; height: 10px;
+            background: #ff0000;
+            border-radius: 50%;
+            margin-right: 6px;
+            animation: ledFlicker 1s infinite;
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-monitor">
+        <div class="crt-screen">
+            <!-- Hidden YouTube Player Containers -->
+            <div id="a-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+            <div id="b-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+            <div class="vhs-tracking" id="vhs-tracking"></div>
+            <div class="header">
+                <span>▓▒░ PHANTOM_DJ v6.0 [YT_MUSIC] ░▒▓</span>
+                <span class="badge">DUAL DECK</span>
+            </div>
+            <div class="main-content">
+                <!-- DECK A -->
+                <div class="deck deck-a" id="deck-a">
+                    <div class="deck-header">DECK A [CYAN]</div>
+                    <input type="text" class="deck-input" id="a-title" placeholder="Search YouTube Music..." title="Search query for YouTube Music">
+                    <input type="text" class="deck-input" id="a-ytid" placeholder="Or paste YT ID" title="YouTube Video ID (11 characters)">
+                    <div class="track-title" id="a-title-display">NO TRACK LOADED</div>
+                    <div class="waveform" id="a-waveform"></div>
+                    <div class="time-display" id="a-time">00:00 / 00:00</div>
+                    <div class="volume-row">
+                        <span>VOL</span>
+                    <input type="range" class="slider-h" id="a-vol" min="0" max="100" value="80" title="Deck A volume">
+                    </div>
+                    <div class="bpm-display" id="a-bpm" onclick="editBPM('a')">-- BPM</div>
+                    <div class="deck-controls">
+                        <button class="deck-btn" onclick="loadDeck('a')">LOAD</button>
+                        <button class="deck-btn" id="a-play" onclick="togglePlay('a')">PLAY</button>
+                        <button class="deck-btn" onclick="cueDeck('a')">CUE</button>
+                    </div>
+                    <div class="yt-status" id="a-yt-status">YT PLAYER: INITIALIZING...</div>
+                </div>
+
+                <!-- MIXER -->
+                <div style="width:130px; display:flex; flex-direction:column; gap:8px; align-items: center; justify-content:flex-start;">
+                    <div class="crossfader-label">CROSSFADER</div>
+                    <input type="range" class="crossfader-container" id="xfader" min="0" max="100" value="50">
+                    <div class="crossfader-label" id="xfader-display">A 50% | B 50%</div>
+                    <button class="master-btn" onclick="syncBPM()">SYNC BPM</button>
+                    <button class="master-btn" onclick="playBoth()">PLAY BOTH</button>
+                    <button class="master-btn" onclick="pauseBoth()">PAUSE ALL</button>
+                    <button class="master-btn danger" onclick="stopAll()">STOP ALL</button>
+                </div>
+
+                <!-- LRC PANEL -->
+                <div style="width:220px; display:flex; flex-direction:column; min-width:0; border-left:1px dashed var(--phosphor); padding-left:10px;">
+                    <div style="font-size:16px; text-align:center; padding-bottom:4px; border-bottom:1px dashed var(--phosphor); text-shadow:0 0 8px var(--phosphor-glow);">LRC SYNC</div>
+                    <div class="lyrics-panel" id="lrc-panel" style="flex-grow:1; font-size:18px;">> NO LRC LOADED<br>> LOAD A TRACK THEN PRESS LRC</div>
+                    <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
+                        <button class="deck-btn" onclick="openLRCModal()">LRC</button>
+                        <button class="deck-btn" onclick="exportLRC()">EXPORT</button>
+                        <button class="deck-btn" onclick="copyLRC()">COPY</button>
+                        <button class="deck-btn" onclick="shareURL()">SHARE</button>
+                    </div>
+                    <div style="margin-top:6px; font-size:14px; color:var(--neon-green); text-shadow:0 0 5px var(--neon-green);" id="lrc-status">LRC: IDLE</div>
+                </div>
+
+                <!-- DECK B -->
+                <div class="deck deck-b" id="deck-b">
+                    <div class="deck-header">DECK B [MAGENTA]</div>
+                    <input type="text" class="deck-input" id="b-title" placeholder="Search YouTube Music..." title="Search query for YouTube Music">
+                    <input type="text" class="deck-input" id="b-ytid" placeholder="Or paste YT ID" title="YouTube Video ID (11 characters)">
+                    <div class="track-title" id="b-title-display">NO TRACK LOADED</div>
+                    <div class="waveform" id="b-waveform"></div>
+                    <div class="time-display" id="b-time">00:00 / 00:00</div>
+                    <div class="volume-row">
+                        <span>VOL</span>
+                        <input type="range" class="slider-h" id="b-vol" min="0" max="100" value="80">
+                    </div>
+                    <div class="bpm-display" id="b-bpm" onclick="editBPM('b')">-- BPM</div>
+                    <div class="deck-controls">
+                        <button class="deck-btn" onclick="loadDeck('b')">LOAD</button>
+                        <button class="deck-btn" id="b-play" onclick="togglePlay('b')">PLAY</button>
+                        <button class="deck-btn" onclick="cueDeck('b')">CUE</button>
+                    </div>
+                    <div class="yt-status" id="b-yt-status">YT PLAYER: INITIALIZING...</div>
+                </div>
+            </div>
+            <div class="status-bar">
+                <span id="status">READY</span>
+                <span id="clock">00:00:00</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LRC Editor Modal -->
+    <div class="modal-overlay" id="lrc-modal">
+        <div class="modal-header">
+            <span style="font-size:16px; text-shadow:0 0 8px var(--phosphor-glow);">LRC EDITOR</span>
+            <button onclick="closeLRCModal()" style="font-size:14px;">CLOSE</button>
+        </div>
+        <div class="modal-body">
+            <div style="color:#888; font-size:12px; margin-bottom:6px;">Format: <span style="color:var(--neon-green);">[mm:ss.xx]Lyric text</span> — paste or type below</div>
+            <textarea id="lrc-textarea" spellcheck="false"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="danger" onclick="closeLRCModal()">CANCEL</button>
+            <button class="success" onclick="applyLRC()">APPLY</button>
+        </div>
+    </div>
+
+    <script>
+        // ============================================================
+        //  PHANTOM DJ v6 — YOUTUBE MUSIC MIXER
+        // ============================================================
+
+        let ytReady = false;
+        let ytPlayerA = null;
+        let ytPlayerB = null;
+        const decks = { a: { bpm: 0, playing: false, loaded: false, title: '' }, b: { bpm: 0, playing: false, loaded: false, title: '' } };
+        const xfader = document.getElementById('xfader');
+        const statusEl = document.getElementById('status');
+        let lrcDataA = [];
+        let lrcLineElementsA = [];
+        let lrcSyncRAF = null;
+        let lrcActive = false;
+
+        // --- YOUTUBE IFRAME API ---
+        var tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        var firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            ytReady = true;
+            // Deck A player
+            ytPlayerA = new YT.Player('a-yt-container', {
+                height: '1', width: '1',
+                videoId: '',
+                playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1 },
+                events: { 'onReady': () => updateYTStatus('a', 'READY'), 'onStateChange': (e) => onYTState('a', e) }
+            });
+            // Deck B player
+            ytPlayerB = new YT.Player('b-yt-container', {
+                height: '1', width: '1',
+                videoId: '',
+                playerVars: { 'autoplay': 0, 'controls': 0, 'disablekb': 1 },
+                events: { 'onReady': () => updateYTStatus('b', 'READY'), 'onStateChange': (e) => onYTState('b', e) }
+            });
+        }
+
+        function updateYTStatus(deck, msg) {
+            document.getElementById(deck + '-yt-status').innerText = 'YT PLAYER: ' + msg;
+        }
+
+        function onYTState(deck, event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                document.getElementById(deck + '-play').innerText = 'PAUSE';
+                decks[deck].playing = true;
+            } else if (event.data == YT.PlayerState.PAUSED || event.data == YT.PlayerState.ENDED) {
+                document.getElementById(deck + '-play').innerText = 'PLAY';
+                decks[deck].playing = false;
+            }
+        }
+
+        // --- CROSSFADER ---
+        xfader.addEventListener('input', () => {
+            const v = parseInt(xfader.value);
+            const aVol = v <= 50 ? 1 : (100 - v) / 50;
+            const bVol = v >= 50 ? 1 : v / 50;
+            document.getElementById('xfader-display').innerText = 'A ' + aVol.toFixed(2) + ' | B ' + bVol.toFixed(2);
+            if (ytPlayerA && ytPlayerA.setVolume) ytPlayerA.setVolume(aVol * 100);
+            if (ytPlayerB && ytPlayerB.setVolume) ytPlayerB.setVolume(bVol * 100);
+        });
+
+        // --- DECK OPERATIONS ---
+        function loadDeck(deck) {
+            const player = deck === 'a' ? ytPlayerA : ytPlayerB;
+            const ytIdField = document.getElementById(deck + '-ytid');
+            const titleField = document.getElementById(deck + '-title');
+            const ytId = ytIdField.value.trim();
+            const query = titleField.value.trim();
+
+            if (!player || !ytReady) {
+                statusEl.innerText = 'YT PLAYER NOT READY';
+                return;
+            }
+
+            // If user gave a search query, try to resolve via iTunes for preview, or ask ID
+            if (!ytId && query) {
+                statusEl.innerText = 'PASTE YOUTUBE VIDEO ID IN YT_ID FIELD';
+                ytIdField.focus();
+                return;
+            }
+
+            if (!ytId) {
+                statusEl.innerText = 'ENTER YOUTUBE VIDEO ID';
+                return;
+            }
+
+            try {
+                player.loadVideoById(ytId);
+                player.setVolume(deck === 'a' ? 80 : 80);
+                decks[deck].loaded = true;
+                decks[deck].title = ytId;
+                document.getElementById(deck + '-title-display').innerText = 'LOADING: ' + ytId;
+                statusEl.innerText = 'DECK ' + deck.toUpperCase() + ' LOADED';
+            } catch(e) {
+                statusEl.innerText = 'LOAD FAILED';
+            }
+        }
+
+        function togglePlay(deck) {
+            const player = deck === 'a' ? ytPlayerA : ytPlayerB;
+            if (!player || !player.getPlayerState) return;
+            const state = player.getPlayerState();
+            if (state === 1) { // playing
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        }
+
+        function cueDeck(deck) {
+            const player = deck === 'a' ? ytPlayerA : ytPlayerB;
+            if (!player || !player.getPlayerState) return;
+            player.pauseVideo();
+            player.seekTo(0, true);
+            statusEl.innerText = 'DECK ' + deck.toUpperCase() + ' CUED';
+        }
+
+        function playBoth() {
+            ['a','b'].forEach(d => {
+                const player = d === 'a' ? ytPlayerA : ytPlayerB;
+                if (player && decks[d].loaded) player.playVideo();
+            });
+            statusEl.innerText = 'PLAYING BOTH';
+        }
+
+        function pauseBoth() {
+            ['a','b'].forEach(d => {
+                const player = d === 'a' ? ytPlayerA : ytPlayerB;
+                if (player && decks[d].loaded) player.pauseVideo();
+            });
+            statusEl.innerText = 'PAUSED';
+        }
+
+        function stopAll() {
+            ['a','b'].forEach(d => {
+                const player = d === 'a' ? ytPlayerA : ytPlayerB;
+                if (!player) return;
+                try { player.pauseVideo(); } catch(e){}
+                try { player.seekTo(0, true); } catch(e){}
+                decks[d].playing = false;
+                document.getElementById(d + '-play').innerText = 'PLAY';
+                document.getElementById(d + '-time').innerText = '00:00 / 00:00';
+                document.getElementById(d + '-title-display').innerText = 'NO TRACK LOADED';
+                decks[d].loaded = false;
+                decks[d].title = '';
+            });
+            xfader.value = 50;
+            document.getElementById('xfader-display').innerText = 'A 1.00 | B 1.00';
+            statusEl.innerText = 'ALL STOPPED';
+        }
+
+        // --- LRC SYNC ---
+        function parseLRC(lrcText) {
+            const lines = lrcText.split('\n');
+            const parsed = [];
+            const lineRegex = /\[(\d{2}):(\d{2})[\.:](\d{2,3})\](.*)/;
+            for (const line of lines) {
+                const match = line.match(lineRegex);
+                if (match) {
+                    const minutes = parseInt(match[1]);
+                    const seconds = parseInt(match[2]);
+                    let millis = parseInt(match[3]);
+                    if (match[3].length === 2) millis *= 10;
+                    const time = minutes * 60 + seconds + millis / 1000;
+                    const text = match[4].trim();
+                    if (text) parsed.push({ time, text });
+                }
+            }
+            parsed.sort((a, b) => a.time - b.time);
+            return parsed;
+        }
+
+        function renderLRC(lrcLines) {
+            const panel = document.getElementById('lrc-panel');
+            panel.innerHTML = '';
+            lrcLineElementsA = [];
+            if (!lrcLines || lrcLines.length === 0) {
+                panel.innerHTML = '> NO LRC DATA';
+                return;
+            }
+            lrcLines.forEach((line, index) => {
+                const div = document.createElement('div');
+                div.className = 'lrc-line';
+                div.dataset.index = index;
+                const words = line.text.split(' ');
+                words.forEach((word, wi) => {
+                    const span = document.createElement('span');
+                    span.className = 'word';
+                    span.innerText = word + ' ';
+                    div.appendChild(span);
+                });
+                panel.appendChild(div);
+                lrcLineElementsA.push(div);
+            });
+        }
+
+        function openLRCModal() {
+            document.getElementById('lrc-textarea').value = '';
+            document.getElementById('lrc-modal').classList.add('open');
+        }
+
+        function closeLRCModal() {
+            document.getElementById('lrc-modal').classList.remove('open');
+        }
+
+        function applyLRC() {
+            const text = document.getElementById('lrc-textarea').value.trim();
+            if (!text) {
+                lrcDataA = [];
+                renderLRC([]);
+                document.getElementById('lrc-status').innerText = 'LRC: CLEARED';
+                closeLRCModal();
+                return;
+            }
+            const parsed = parseLRC(text);
+            if (parsed.length === 0) {
+                const lines = text.split('\n').filter(l => l.trim());
+                const interval = 3;
+                lrcDataA = lines.map((line, i) => ({ time: i * interval, text: line.trim() }));
+                renderLRC(lrcDataA);
+            } else {
+                lrcDataA = parsed;
+                renderLRC(lrcDataA);
+            }
+            document.getElementById('lrc-status').innerText = 'LRC: ' + lrcDataA.length + ' lines';
+            closeLRCModal();
+        }
+
+        function startLRCSync() {
+            if (lrcSyncRAF) cancelAnimationFrame(lrcSyncRAF);
+            lrcActive = true;
+            function syncLoop() {
+                if (!lrcActive) { lrcSyncRAF = requestAnimationFrame(syncLoop); return; }
+                const panel = document.getElementById('lrc-panel');
+                const xfVal = parseInt(xfader.value);
+                const aWeight = xfVal <= 50 ? 1 : (100 - xfVal) / 50;
+                const bWeight = xfVal >= 50 ? 1 : xfVal / 50;
+                let activeLrc = null;
+                let activeElements = null;
+                let player = null;
+                if (decks.a.playing && aWeight >= bWeight && decks.a.loaded && ytPlayerA && ytPlayerA.getCurrentTime) {
+                    activeLrc = lrcDataA;
+                    activeElements = lrcLineElementsA;
+                    player = ytPlayerA;
+                } else if (decks.b.playing && decks.b.loaded && ytPlayerB && ytPlayerB.getCurrentTime) {
+                    activeLrc = lrcDataA;
+                    activeElements = lrcLineElementsA;
+                    player = ytPlayerB;
+                } else if (decks.a.playing && decks.a.loaded && ytPlayerA && ytPlayerA.getCurrentTime) {
+                    activeLrc = lrcDataA;
+                    activeElements = lrcLineElementsA;
+                    player = ytPlayerA;
+                } else if (decks.b.playing && decks.b.loaded && ytPlayerB && ytPlayerB.getCurrentTime) {
+                    activeLrc = lrcDataA;
+                    activeElements = lrcLineElementsA;
+                    player = ytPlayerB;
+                }
+                if (player && activeLrc && activeLrc.length > 0 && activeElements) {
+                    const cur = player.getCurrentTime() || 0;
+                    let activeIndex = -1;
+                    for (let i = activeLrc.length - 1; i >= 0; i--) {
+                        if (cur >= activeLrc[i].time) { activeIndex = i; break; }
+                    }
+                    activeElements.forEach((el, idx) => {
+                        el.classList.remove('active', 'sung');
+                        if (idx < activeIndex) { el.classList.add('sung'); }
+                        else if (idx === activeIndex) { el.classList.add('active'); }
+                    });
+                    if (activeIndex >= 0) {
+                        const el = activeElements[activeIndex];
+                        const panelTop = panel.scrollTop;
+                        const panelHeight = panel.clientHeight;
+                        const elTop = el.offsetTop;
+                        if (elTop < panelTop || elTop > panelTop + panelHeight - 40) {
+                            el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                        }
+                    }
+                }
+                lrcSyncRAF = requestAnimationFrame(syncLoop);
+            }
+            lrcSyncRAF = requestAnimationFrame(syncLoop);
+        }
+
+        // --- SHARE / EXPORT ---
+        function exportLRC() {
+            if (lrcDataA.length === 0) { statusEl.innerText = 'STATUS: No lyrics to export'; return; }
+            const lrcText = lrcDataA.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            const blob = new Blob([lrcText], { type: 'text/plain' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'lyrics.lrc';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            statusEl.innerText = 'STATUS: EXPORTED ' + lrcDataA.length + ' lines';
+        }
+
+        function copyLRC() {
+            if (lrcDataA.length === 0) { statusEl.innerText = 'STATUS: No lyrics to copy'; return; }
+            const lrcText = lrcDataA.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            navigator.clipboard.writeText(lrcText).then(function() {
+                statusEl.innerText = 'STATUS: COPIED TO CLIPBOARD';
+            }).catch(function() {
+                statusEl.innerText = 'STATUS: COPY FAILED';
+            });
+        }
+
+        function shareURL() {
+            if (lrcDataA.length === 0) { statusEl.innerText = 'STATUS: No lyrics to share'; return; }
+            const lrcText = lrcDataA.map(l => {
+                const mins = Math.floor(l.time / 60);
+                const secs = l.time % 60;
+                const mm = String(mins).padStart(2, '0');
+                const ss = String(Math.floor(secs)).padStart(2, '0');
+                const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
+                return '[' + mm + ':' + ss + '.' + xx + ']' + l.text;
+            }).join('\n');
+            const encoded = btoa(unescape(encodeURIComponent(lrcText)));
+            const url = window.location.origin + window.location.pathname + '#' + encoded;
+            navigator.clipboard.writeText(url).then(function() {
+                statusEl.innerText = 'STATUS: SHARE LINK COPIED';
+            }).catch(function() {
+                window.location.hash = encoded;
+                statusEl.innerText = 'STATUS: LINK GENERATED';
+            });
+        }
+
+        function loadFromHash() {
+            const hash = window.location.hash.substring(1);
+            if (!hash) return false;
+            try {
+                const lrcText = decodeURIComponent(escape(atob(hash)));
+                const parsed = parseLRC(lrcText);
+                if (parsed.length > 0) {
+                    lrcDataA = parsed;
+                    renderLRC(parsed);
+                    statusEl.innerText = 'STATUS: LRC LOADED FROM LINK (' + parsed.length + ' lines)';
+                    return true;
+                }
+            } catch(e) {}
+            return false;
+        }
+        loadFromHash();
+
+        // --- TIME UPDATES ---
+        function updateDeckTime(deck) {
+            const player = deck === 'a' ? ytPlayerA : ytPlayerB;
+            const el = document.getElementById(deck + '-time');
+            if (!player || !player.getCurrentTime || !decks[deck].loaded) {
+                el.innerText = '00:00 / 00:00';
+                return;
+            }
+            const cur = player.getCurrentTime() || 0;
+            const dur = player.getDuration() || 0;
+            const fmt = (s) => { const m = Math.floor(s/60); const sec = Math.floor(s%60); return String(m).padStart(2,'0') + ':' + String(sec).padStart(2,'0'); };
+            el.innerText = fmt(cur) + ' / ' + fmt(dur);
+        }
+
+        // --- WAVEFORM GENERATOR ---
+        function generateWaveform(deck) {
+            const container = document.getElementById(deck + '-waveform');
+            container.innerHTML = '';
+            const bars = 40;
+            for (let i = 0; i < bars; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'waveform-bar';
+                bar.style.height = (Math.random() * 80 + 20) + '%';
+                container.appendChild(bar);
+            }
+        }
+        generateWaveform('a');
+        generateWaveform('b');
+
+        // Animate waveform when playing
+        function animateWaveform() {
+            ['a','b'].forEach(deck => {
+                const bars = document.getElementById(deck + '-waveform').children;
+                if (decks[deck].playing) {
+                    for (let i = 0; i < bars.length; i++) {
+                        bars[i].style.height = (Math.random() * 60 + 20) + '%';
+                        bars[i].style.opacity = (Math.random() * 0.5 + 0.5);
+                    }
+                } else if (decks[deck].loaded) {
+                    for (let i = 0; i < bars.length; i++) {
+                        bars[i].style.height = (Math.random() * 15 + 10) + '%';
+                        bars[i].style.opacity = '0.3';
+                    }
+                }
+            });
+            updateDeckTime('a');
+            updateDeckTime('b');
+            requestAnimationFrame(animateWaveform);
+        }
+        requestAnimationFrame(animateWaveform);
+
+        // --- CLOCK ---
+        function updateClock() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.toLocaleTimeString('en-US', {hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // --- VOLUME ---
+        document.getElementById('a-vol').addEventListener('input', (e) => {
+            if (ytPlayerA && ytPlayerA.setVolume) ytPlayerA.setVolume(parseInt(e.target.value));
+        });
+        document.getElementById('b-vol').addEventListener('input', (e) => {
+            if (ytPlayerB && ytPlayerB.setVolume) ytPlayerB.setVolume(parseInt(e.target.value));
+        });
+
+        // --- KEYBOARD ---
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === '1') { e.preventDefault(); togglePlay('a'); }
+            if (e.ctrlKey && e.key === '2') { e.preventDefault(); togglePlay('b'); }
+            if (e.ctrlKey && e.key === ' ') { e.preventDefault(); playBoth(); }
+        });
+
+        console.log('PHANTOM DJ v6 — YOUTUBE MUSIC MIXER INITIALIZED');
+        console.log('Deck A: Ctrl+1 | Deck B: Ctrl+2 | Play Both: Ctrl+Space');
+        startLRCSync();
+    </script>
+</body>
+</html>

@@ -1,0 +1,534 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AMBER CRT WORKSTATION</title>
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --phosphor: #FFB000;
+            --phosphor-glow: rgba(255, 176, 0, 0.6);
+            --bg: #1a0f00;
+            --screen-bg: #0a0500;
+        }
+
+        body {
+            background-color: #050505;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        /* CRT Monitor Bezel */
+        .crt-monitor {
+            background: #1a1a1a;
+            border-radius: 30px;
+            padding: 50px;
+            box-shadow: 0 0 0 15px #111, 0 0 0 20px #2a2a2a, 0 0 80px rgba(0, 0, 0, 0.8);
+            position: relative;
+            width: 900px;
+            height: 600px;
+            max-width: 95%;
+        }
+
+        .power-led {
+            position: absolute;
+            bottom: 20px;
+            right: 40px;
+            width: 10px;
+            height: 10px;
+            background: var(--phosphor);
+            border-radius: 50%;
+            box-shadow: 0 0 15px var(--phosphor);
+            animation: ledFlicker 4s infinite;
+        }
+        
+        .brand-label {
+            position: absolute;
+            bottom: 25px;
+            left: 40px;
+            color: #555;
+            font-size: 18px;
+            letter-spacing: 2px;
+        }
+
+        /* CRT Screen */
+        .crt-screen {
+            width: 100%;
+            height: 100%;
+            background: var(--screen-bg);
+            border-radius: 25px;
+            border: 3px solid #050505;
+            color: var(--phosphor);
+            overflow: hidden;
+            position: relative;
+            padding: 25px;
+            box-sizing: border-box;
+            box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.9);
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* CRT Power On Animation */
+        @keyframes powerOn {
+            0% { transform: scale(0, 0.005); opacity: 1; filter: brightness(3); }
+            15% { transform: scale(1, 0.005); opacity: 1; filter: brightness(3); }
+            50% { transform: scale(1, 1); opacity: 1; filter: brightness(2); }
+            100% { transform: scale(1, 1); opacity: 1; filter: brightness(1); }
+        }
+        .crt-screen { animation: powerOn 1.5s ease-out; }
+
+        /* Scanlines & Curvature */
+        .crt-screen::before {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 176, 0, 0.03), rgba(0, 0, 0, 0.1), rgba(255, 176, 0, 0.03));
+            z-index: 5;
+            background-size: 100% 3px, 4px 100%;
+            pointer-events: none;
+        }
+        .crt-screen::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+            z-index: 6;
+            pointer-events: none;
+        }
+
+        /* VHS Tracking Distortion */
+        .vhs-tracking {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 40px;
+            background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+            z-index: 7;
+            opacity: 0;
+            pointer-events: none;
+        }
+        @keyframes vhsGlitch {
+            0% { top: -50px; opacity: 0; }
+            10% { opacity: 0.8; }
+            90% { opacity: 0.8; }
+            100% { top: 100%; opacity: 0; }
+        }
+
+        /* Boot Screen Overlay */
+        .boot-screen {
+            position: absolute;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: var(--screen-bg);
+            z-index: 10;
+            padding: 25px;
+            font-size: 20px;
+            line-height: 1.4;
+            display: none;
+        }
+
+        /* Main UI */
+        .ui-wrapper { display: flex; flex-direction: column; height: 100%; z-index: 4; }
+        
+        .header {
+            font-size: 24px;
+            border-bottom: 2px solid var(--phosphor);
+            padding-bottom: 10px;
+            margin-bottom: 15px;
+            text-shadow: 0 0 8px var(--phosphor-glow);
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .input-row { display: flex; gap: 15px; margin-bottom: 15px; align-items: center; font-size: 20px; }
+        input[type="text"], input[type="number"] {
+            background: transparent;
+            border: none;
+            border-bottom: 1px solid var(--phosphor);
+            color: var(--phosphor);
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            outline: none;
+            width: 120px;
+            text-shadow: 0 0 5px var(--phosphor-glow);
+        }
+        input[type="number"] { width: 50px; }
+        button {
+            background: transparent;
+            border: 1px solid var(--phosphor);
+            color: var(--phosphor);
+            padding: 2px 15px;
+            font-family: 'VT323', monospace;
+            font-size: 20px;
+            cursor: pointer;
+            text-transform: uppercase;
+            box-shadow: 0 0 10px transparent;
+            transition: 0.2s;
+        }
+        button:hover { background: var(--phosphor); color: var(--screen-bg); box-shadow: 0 0 15px var(--phosphor-glow); }
+        button:disabled { opacity: 0.3; cursor: not-allowed; }
+
+        .content-wrapper { display: flex; gap: 20px; flex-grow: 1; }
+        
+        /* Audio Visualizer Panel */
+        .visualizer-panel {
+            width: 250px;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px dashed var(--phosphor);
+            padding-right: 15px;
+        }
+        #spectrum {
+            flex-grow: 1;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 2px;
+            font-size: 22px;
+            line-height: 1;
+            text-shadow: 0 0 10px var(--phosphor-glow);
+            margin-bottom: 10px;
+        }
+        .spec-bar { width: 10px; text-align: center; transition: height 0.05s linear; }
+        
+        .cassette-box {
+            border: 1px solid var(--phosphor);
+            padding: 10px;
+            text-align: center;
+            font-size: 14px;
+            box-shadow: inset 0 0 15px rgba(255, 176, 0, 0.1);
+        }
+        #cassette { white-space: pre; line-height: 1.1; margin-bottom: 5px; }
+
+        .lyrics-panel {
+            flex-grow: 1;
+            overflow-y: auto;
+            font-size: 22px;
+            line-height: 1.3;
+            scrollbar-width: thin;
+            scrollbar-color: var(--phosphor) transparent;
+        }
+        .lyrics-panel::-webkit-scrollbar { width: 6px; }
+        .lyrics-panel::-webkit-scrollbar-thumb { background: var(--phosphor); }
+
+        .cursor {
+            display: inline-block;
+            width: 12px;
+            height: 22px;
+            background: var(--phosphor);
+            vertical-align: text-bottom;
+            animation: blink 1s steps(2) infinite;
+            box-shadow: 0 0 10px var(--phosphor-glow);
+        }
+        @keyframes blink { 0%, 50% { opacity: 1; } 51%, 100% { opacity: 0; } }
+        @keyframes ledFlicker { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        @keyframes screenFlicker { 0% { opacity: 0.98; } 50% { opacity: 1; } 100% { opacity: 0.98; } }
+        .crt-screen { animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s; }
+
+        .loading { color: #ffff00; text-shadow: 0 0 8px #ffff00; }
+    </style>
+</head>
+<body>
+
+    <div class="crt-monitor">
+        <div class="crt-screen">
+            <!-- Boot Sequence Overlay -->
+            <div class="boot-screen" id="boot-screen"></div>
+            
+            <!-- VHS Glitch Line -->
+            <div class="vhs-tracking" id="vhs-tracking"></div>
+
+            <div class="ui-wrapper">
+                <div class="header">
+                    <span>▓▒░ LYRIC_O.S v2.5 ░▒▓</span>
+                    <span id="clock">00:00:00</span>
+                </div>
+                
+                <div class="input-row">
+                    ARTIST: <input type="text" id="artist" value="New Order">
+                    TRACK: <input type="text" id="title" value="Blue Monday">
+                    BPM: <input type="number" id="bpm" value="130" min="60" max="200">
+                    <button id="start-btn" onclick="startSession()" disabled>EXECUTE</button>
+                </div>
+
+                <div class="content-wrapper">
+                    <div class="visualizer-panel">
+                        <div id="spectrum"></div>
+                        <div class="cassette-box">
+                            <div id="cassette">
+  ┌───────────────┐
+  │  (O)=====(O)  │
+  │   ▓▓▓▓▓▓▓▓▓   │
+  └───────────────┘
+                            </div>
+                            <div id="tape-label">NO TAPE LOADED</div>
+                        </div>
+                    </div>
+                    <div class="lyrics-panel">
+                        <div id="lyrics-text">> SYSTEM READY...<br>> AWAITING COMMAND</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="brand-label">SYNCMASTER 570B</div>
+        <div class="power-led"></div>
+    </div>
+
+    <script>
+        const lyricsText = document.getElementById('lyrics-text');
+        const cassette = document.getElementById('cassette');
+        const tapeLabel = document.getElementById('tape-label');
+        const startBtn = document.getElementById('start-btn');
+        const bootScreen = document.getElementById('boot-screen');
+        const spectrum = document.getElementById('spectrum');
+        const vhsTracking = document.getElementById('vhs-tracking');
+        const clock = document.getElementById('clock');
+
+        let beatTimer = null;
+        let vhsTimer = null;
+        let audioCtx = null;
+        let reelState = 0;
+        const reels = ['O', '0', '@', '0'];
+        const blocks = " ▁▂▃▄▅▆▇█";
+        const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // --- 1. SPECTRUM ANALYZER SETUP ---
+        const numBars = 15;
+        let specBars = [];
+        for(let i=0; i<numBars*2; i++) {
+            let bar = document.createElement('span');
+            bar.className = 'spec-bar';
+            bar.innerText = '▁';
+            spectrum.appendChild(bar);
+            specBars.push(bar);
+        }
+
+        // --- 2. BIOS BOOT SEQUENCE ---
+        async function bootSequence() {
+            bootScreen.style.display = 'block';
+            const bootText = [
+                "AMIBIOS (C) 1985-2024 AMERICAN MEGATRENDS INC.",
+                "CPU: ZILOG Z80 @ 3.58 MHZ",
+                "MEMORY TEST: 65536 KB OK",
+                "",
+                "DETECTING IDE DEVICES...",
+                "PRIMARY MASTER: CASSETTE_DRIVE_0",
+                "SECONDARY MASTER: CD-ROM 2X",
+                "",
+                "LOADING LYRIC_O.S KERNEL... [OK]",
+                "MOUNTING /DEV/CASSETTE... [OK]",
+                "INITIALIZING AUDIO_DRIVER.SYS... [OK]",
+                "INITIALIZING PHOSPHOR_DISPLAY.DRV... [OK]",
+                "",
+                "SYSTEM READY.",
+                "",
+                "C:\\>"
+            ];
+
+            for (let line of bootText) {
+                bootScreen.innerHTML += line + "<br>";
+                await sleep(150);
+            }
+            await sleep(800);
+            bootScreen.style.display = 'none';
+            startBtn.disabled = false;
+        }
+
+        // --- 3. VHS TRACKING GLITCH ---
+        function triggerVHSGlitch() {
+            vhsTracking.style.animation = 'none';
+            void vhsTracking.offsetWidth; // Force reflow
+            vhsTracking.style.animation = 'vhsGlitch 0.5s linear';
+        }
+        // Randomly trigger VHS glitch
+        setInterval(() => {
+            if (Math.random() > 0.7) triggerVHSGlitch();
+        }, 3000);
+
+        // --- 4. 8-BIT CHIPTUNE AUDIO ---
+        function playChiptune(beatCount) {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // A. 8-Bit Kick Drum (Triangle Wave)
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(0.6, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+
+            // B. 8-Bit Hi-Hat (White Noise burst)
+            const bufferSize = audioCtx.sampleRate * 0.05;
+            const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
+            const data = buffer.getChannelData(0);
+            for (let i = 0; i < bufferSize; i++) data[i] = Math.random() * 2 - 1;
+            
+            const noise = audioCtx.createBufferSource();
+            noise.buffer = buffer;
+            const noiseGain = audioCtx.createGain();
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'highpass';
+            filter.frequency.value = 1000;
+            noiseGain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            noiseGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.03);
+            noise.connect(filter);
+            filter.connect(noiseGain);
+            noiseGain.connect(audioCtx.destination);
+            noise.start();
+            noise.stop(audioCtx.currentTime + 0.05);
+
+            // C. 8-Bit Bass Arpeggio (Square Wave) - Plays every 2 beats
+            if (beatCount % 2 === 0) {
+                const bassOsc = audioCtx.createOscillator();
+                const bassGain = audioCtx.createGain();
+                const notes = [110, 146.83, 164.81, 130.81]; // A D E C arpeggio
+                const note = notes[Math.floor(beatCount / 2) % notes.length];
+                
+                bassOsc.type = 'square';
+                bassOsc.frequency.setValueAtTime(note, audioCtx.currentTime);
+                bassGain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+                bassGain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + (60000 / parseInt(document.getElementById('bpm').value)) / 1000);
+                
+                bassOsc.connect(bassGain);
+                bassGain.connect(audioCtx.destination);
+                bassOsc.start();
+                bassOsc.stop(audioCtx.currentTime + 0.2);
+            }
+        }
+
+        // --- 5. VISUAL SYNC ---
+        let beatCounter = 0;
+        function updateVisuals() {
+            // Cassette Reels
+            reelState = (reelState + 1) % reels.length;
+            const r = reels[reelState];
+            const tape = Math.random() > 0.5 ? '▓' : '▒';
+            cassette.innerText = `
+  ┌───────────────┐
+  │  (${r})=====(${r})  │
+  │   ${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}${tape}   │
+  └───────────────┘`;
+            cassette.style.transform = 'scale(1.02)';
+            setTimeout(() => { cassette.style.transform = 'scale(1.0)'; }, 80);
+
+            // Spectrum Analyzer (Symmetrical bounce)
+            for(let i=0; i<numBars; i++) {
+                let h = Math.floor(Math.random() * 8);
+                specBars[i].innerText = blocks[h];
+                specBars[(numBars*2)-1-i].innerText = blocks[h]; // Mirror it
+            }
+        }
+
+        // --- 6. BPM CONTROLLER ---
+        function startBeat(bpm) {
+            stopBeat();
+            beatCounter = 0;
+            const msPerBeat = 60000 / bpm;
+            beatTimer = setInterval(() => {
+                updateVisuals();
+                playChiptune(beatCounter);
+                beatCounter++;
+            }, msPerBeat);
+            return msPerBeat / 2;
+        }
+
+        function stopBeat() {
+            if (beatTimer) clearInterval(beatTimer);
+            beatTimer = null;
+            cassette.style.transform = 'scale(1.0)';
+            // Reset spectrum
+            specBars.forEach(b => b.innerText = '▁');
+        }
+
+        // --- 7. LYRIC FETCHER ---
+        async function startSession() {
+            stopBeat();
+            const artist = document.getElementById('artist').value.trim();
+            const title = document.getElementById('title').value.trim();
+            const bpm = parseInt(document.getElementById('bpm').value) || 120;
+            if(!artist || !title) return;
+
+            startBtn.disabled = true;
+            startBtn.innerText = "SEARCHING";
+            lyricsText.innerHTML = '<span class="loading">> QUERYING DATABASE...</span>';
+            tapeLabel.innerText = `${artist.toUpperCase()}`.substring(0, 15);
+
+            try {
+                const response = await fetch(`https://api.lyrics.ovh/v1/${artist}/${title}`);
+                const data = await response.json();
+                
+                if(data.error || !data.lyrics) {
+                    lyricsText.innerHTML = '<span style="color:#ff0000; text-shadow:0 0 5px #ff0000;">> ERROR 404: TRACK NOT FOUND</span>';
+                    startBtn.disabled = false;
+                    startBtn.innerText = "EXECUTE";
+                    return;
+                }
+
+                const typeSpeed = startBeat(bpm);
+                startBtn.innerText = "HALT";
+                startBtn.disabled = false;
+                startBtn.setAttribute('onclick', 'stopSession()');
+
+                await typeLyrics(data.lyrics, typeSpeed);
+
+            } catch (error) {
+                lyricsText.innerHTML = '<span style="color:#ff0000;">> NETWORK ERROR</span>';
+                startBtn.disabled = false;
+                startBtn.innerText = "EXECUTE";
+            }
+        }
+
+        function stopSession() {
+            stopBeat();
+            startBtn.innerText = "EXECUTE";
+            startBtn.setAttribute('onclick', 'startSession()');
+        }
+
+        async function typeLyrics(text, typeSpeed) {
+            lyricsText.innerHTML = '';
+            const lines = text.split('\n');
+            
+            for (let i = 0; i < lines.length; i++) {
+                let lineSpan = document.createElement('span');
+                lyricsText.appendChild(lineSpan);
+                
+                const line = lines[i];
+                for (let char of line) {
+                    lineSpan.innerHTML += char;
+                    lyricsText.parentElement.scrollTop = lyricsText.parentElement.scrollHeight;
+                    await sleep(typeSpeed);
+                }
+                
+                lyricsText.innerHTML += '\n';
+                await sleep(typeSpeed * 1.5);
+            }
+
+            const cursor = document.createElement('span');
+            cursor.className = 'cursor';
+            lyricsText.appendChild(cursor);
+            stopSession();
+        }
+
+        // --- 8. SYSTEM CLOCK ---
+        function updateClock() {
+            const d = new Date();
+            clock.innerText = d.toLocaleTimeString('en-US', {hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        // Start the boot sequence on load
+        window.onload = bootSequence;
+    </script>
+</body>
+</html>

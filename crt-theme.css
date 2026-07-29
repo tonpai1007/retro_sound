@@ -1,0 +1,336 @@
+/* ============================================================
+   CRT ENGINE — Shared Retro Theme
+   Used by: retro_crt, retro_v2, retro_youtube, v4, v5, dos_edit
+   ============================================================ */
+
+:root {
+    --phosphor: #FFB000;
+    --phosphor-glow: rgba(255, 176, 0, 0.7);
+    --phosphor-dim: rgba(255, 176, 0, 0.3);
+    --neon-green: #33ff00;
+    --neon-green-glow: rgba(51, 255, 0, 0.7);
+    --neon-magenta: #ff00ff;
+    --neon-cyan: #00ffff;
+    --screen-bg: #0a0500;
+    --bezel-bg: #1a1a1a;
+    --bezel-shadow: #111;
+    --text-shadow: 0 0 5px var(--phosphor-dim);
+}
+
+/* --- CRT Monitor Bezel --- */
+.crt-monitor {
+    background: var(--bezel-bg);
+    border-radius: 30px;
+    padding: 50px;
+    box-shadow: 0 0 0 15px var(--bezel-shadow), 0 0 0 20px #2a2a2a, 0 0 80px rgba(0,0,0,0.8);
+    position: relative;
+}
+
+/* --- CRT Screen --- */
+.crt-screen {
+    width: 100%; height: 100%;
+    background: var(--screen-bg);
+    border-radius: 25px;
+    border: 3px solid #050505;
+    color: var(--phosphor);
+    overflow: hidden;
+    position: relative;
+    box-sizing: border-box;
+    box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+    display: flex;
+    flex-direction: column;
+}
+
+/* Scanlines */
+.crt-screen::before {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: linear-gradient(rgba(18,16,16,0) 50%, rgba(0,0,0,0.25) 50%),
+                linear-gradient(90deg, rgba(255,176,0,0.03), rgba(0,0,0,0.1), rgba(255,176,0,0.03));
+    z-index: 10;
+    background-size: 100% 3px, 4px 100%;
+    pointer-events: none;
+}
+
+/* Vignette */
+.crt-screen::after {
+    content: " ";
+    display: block;
+    position: absolute;
+    top: 0; left: 0; bottom: 0; right: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+    z-index: 11;
+    pointer-events: none;
+}
+
+/* Power LED */
+.power-led {
+    position: absolute;
+    bottom: 20px;
+    right: 40px;
+    width: 10px;
+    height: 10px;
+    background: var(--phosphor);
+    border-radius: 50%;
+    box-shadow: 0 0 15px var(--phosphor);
+    animation: ledFlicker 4s infinite;
+}
+
+/* Brand Label */
+.brand-label {
+    position: absolute;
+    bottom: 25px;
+    left: 40px;
+    color: #555;
+    font-size: 18px;
+    letter-spacing: 2px;
+}
+
+/* --- Animations --- */
+@keyframes ledFlicker {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+@keyframes screenFlicker {
+    0% { opacity: 0.98; }
+    50% { opacity: 1; }
+    100% { opacity: 0.98; }
+}
+
+@keyframes powerOn {
+    0% { transform: scale(0, 0.005); opacity: 1; filter: brightness(3); }
+    15% { transform: scale(1, 0.005); opacity: 1; filter: brightness(3); }
+    50% { transform: scale(1, 1); opacity: 1; filter: brightness(2); }
+    100% { transform: scale(1, 1); opacity: 1; filter: brightness(1); }
+}
+
+@keyframes blink {
+    0%, 50% { opacity: 1; }
+    51%, 100% { opacity: 0; }
+}
+
+@keyframes vhsGlitch {
+    0% { top: -50px; opacity: 0; }
+    10% { opacity: 0.8; }
+    90% { opacity: 0.8; }
+    100% { top: 100%; opacity: 0; }
+}
+
+/* --- Shared UI Components --- */
+.crt-header {
+    font-size: 22px;
+    border-bottom: 2px solid var(--phosphor);
+    padding-bottom: 8px;
+    margin-bottom: 10px;
+    text-shadow: 0 0 8px var(--phosphor-glow);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 5;
+}
+
+.crt-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    outline: none;
+    text-shadow: 0 0 5px var(--phosphor-glow);
+}
+
+.crt-btn {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    padding: 2px 12px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.2s;
+    z-index: 5;
+}
+
+.crt-btn:hover {
+    background: var(--phosphor);
+    color: #000;
+    box-shadow: 0 0 15px var(--phosphor-glow);
+}
+
+.crt-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.crt-btn.danger {
+    border-color: #ff3333;
+    color: #ff3333;
+}
+.crt-btn.danger:hover {
+    background: #ff3333;
+    color: #000;
+}
+
+.crt-btn.success {
+    border-color: var(--neon-green);
+    color: var(--neon-green);
+}
+.crt-btn.success:hover {
+    background: var(--neon-green);
+    color: #000;
+}
+
+.crt-scrollbar::-webkit-scrollbar { width: 6px; }
+.crt-scrollbar::-webkit-scrollbar-thumb { background: var(--phosphor); }
+.crt-scrollbar { scrollbar-width: thin; scrollbar-color: var(--phosphor) transparent; }
+
+.crt-loading {
+    color: #ffff00;
+    text-shadow: 0 0 8px #ffff00;
+}
+
+.crt-cursor {
+    display: inline-block;
+    width: 12px;
+    height: 22px;
+    background: var(--phosphor);
+    vertical-align: text-bottom;
+    animation: blink 1s steps(2) infinite;
+    box-shadow: 0 0 10px var(--phosphor-glow);
+}
+
+/* VHS Tracking Distortion */
+.vhs-tracking {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 40px;
+    background: linear-gradient(to bottom, transparent, rgba(255,255,255,0.1), transparent);
+    z-index: 12;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Boot Screen Overlay */
+.boot-screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--screen-bg);
+    z-index: 15;
+    padding: 25px;
+    font-size: 20px;
+    line-height: 1.4;
+    display: none;
+}
+
+/* ============================================================
+   LRC SYNC — Lyrics Panel & Sync Styles
+   ============================================================ */
+
+.lyrics-panel {
+    flex-grow: 1;
+    overflow-y: auto;
+    font-size: 22px;
+    line-height: 1.4;
+    scrollbar-width: thin;
+    scrollbar-color: var(--phosphor) transparent;
+    padding: 8px;
+    border: 1px solid #333;
+    position: relative;
+}
+.lyrics-panel::-webkit-scrollbar { width: 6px; }
+.lyrics-panel::-webkit-scrollbar-thumb { background: var(--phosphor); }
+
+.lrc-line {
+    color: #444;
+    transition: color 0.15s, text-shadow 0.15s, transform 0.15s;
+    padding: 2px 0;
+    display: block;
+}
+.lrc-line.active {
+    color: var(--neon-green);
+    text-shadow: 0 0 20px var(--neon-green);
+    transform: scale(1.05);
+    transform-origin: left center;
+}
+.lrc-line.sung {
+    color: var(--phosphor);
+    text-shadow: 0 0 5px var(--phosphor-glow);
+}
+.lrc-line .word {
+    transition: color 0.08s, text-shadow 0.08s;
+}
+.lrc-line .word.active {
+    color: #ffffff;
+    text-shadow: 0 0 15px #ffffff, 0 0 30px var(--neon-green);
+}
+
+/* Progress Bar */
+.progress-bar {
+    width: 100%;
+    height: 4px;
+    background: #222;
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--neon-green);
+    width: 0%;
+    box-shadow: 0 0 10px var(--neon-green);
+    transition: width 0.1s linear;
+}
+
+/* Status Bar */
+.status-bar {
+    margin-top: 8px;
+    font-size: 16px;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Loading */
+.loading {
+    color: #ffff00;
+    text-shadow: 0 0 8px #ffff00;
+}
+
+/* LRC Editor Modal */
+.modal-overlay {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.85);
+    z-index: 20;
+    display: none;
+    padding: 20px;
+    flex-direction: column;
+}
+.modal-overlay.open { display: flex; }
+.modal-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+.modal-body { flex-grow: 1; display: flex; flex-direction: column; }
+textarea {
+    flex-grow: 1;
+    background: #000;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    padding: 10px;
+    resize: none;
+    outline: none;
+}
+.modal-footer { margin-top: 10px; display: flex; gap: 10px; justify-content: flex-end; }
+
+/* Share Buttons */
+.share-row { display: flex; gap: 6px; margin-top: 6px; }
+.share-row button { font-size: 14px; padding: 2px 8px; }
