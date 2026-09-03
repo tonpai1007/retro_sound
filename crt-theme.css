@@ -1,7 +1,7 @@
 /* ============================================================
-   CRT ENGINE — Shared Retro Theme
-   Used by: retro_crt, retro_v2, retro_youtube, v4, v5, dos_edit
-   ============================================================ */
+    CRT ENGINE — Shared Retro Theme
+    Used by: retro_crt, retro_v2, retro_youtube, v4, v5, dos_edit
+    ============================================================ */
 
 :root {
     --phosphor: #FFB000;
@@ -15,6 +15,86 @@
     --bezel-bg: #1a1a1a;
     --bezel-shadow: #111;
     --text-shadow: 0 0 5px var(--phosphor-dim);
+}
+
+/* --- Accessibility: Reduced Effects --- */
+/* Applied via .reduced-effects class on <body> or <html> */
+.reduced-effects .crt-screen::before,
+.reduced-effects .crt-screen::after {
+    display: none !important;
+}
+.reduced-effects .crt-screen {
+    animation: none !important;
+}
+.reduced-effects .power-led {
+    animation: none !important;
+}
+.reduced-effects .crt-cursor {
+    animation: none !important;
+    opacity: 1 !important;
+}
+.reduced-effects .vhs-tracking {
+    display: none !important;
+}
+.reduced-effects *,
+.reduced-effects *::before,
+.reduced-effects *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+}
+
+/* --- Accessibility: Respect prefers-reduced-motion --- */
+@media (prefers-reduced-motion: reduce) {
+    .crt-screen::before,
+    .crt-screen::after {
+        display: none !important;
+    }
+    .crt-screen {
+        animation: none !important;
+    }
+    .power-led {
+        animation: none !important;
+    }
+    .crt-cursor {
+        animation: none !important;
+        opacity: 1 !important;
+    }
+    .vhs-tracking {
+        display: none !important;
+    }
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* --- Accessibility: Focus Indicators --- */
+:focus-visible {
+    outline: 2px solid var(--neon-cyan) !important;
+    outline-offset: 2px;
+    box-shadow: 0 0 8px var(--neon-cyan);
+}
+
+/* Skip link for keyboard users */
+.skip-link {
+    position: absolute;
+    top: -100px;
+    left: 10px;
+    background: var(--phosphor);
+    color: #000;
+    padding: 8px 16px;
+    font-family: 'VT323', monospace;
+    font-size: 18px;
+    z-index: 9999;
+    text-decoration: none;
+    border-radius: 0 0 4px 4px;
+}
+.skip-link:focus {
+    top: 0;
 }
 
 /* --- CRT Monitor Bezel --- */
@@ -334,3 +414,253 @@ textarea {
 /* Share Buttons */
 .share-row { display: flex; gap: 6px; margin-top: 6px; }
 .share-row button { font-size: 14px; padding: 2px 8px; }
+
+/* ============================================================
+   DJ ENGINE v2 — Decks, Mixer, VU, Cues, Step Sequencer
+   ============================================================ */
+
+#dj-app {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    height: 100%;
+    min-height: 0;
+    overflow: auto;
+}
+.dj-main { display: flex; gap: 12px; flex: 1; min-height: 0; }
+
+.dj-deck {
+    flex: 1;
+    border: 1px solid var(--phosphor);
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+}
+.dj-deck-head {
+    font-size: 19px;
+    text-align: center;
+    padding-bottom: 4px;
+    border-bottom: 1px dashed var(--phosphor);
+    cursor: pointer;
+    user-select: none;
+}
+.dj-master-tag {
+    font-size: 12px;
+    opacity: 0.4;
+    cursor: pointer;
+}
+.dj-load-row {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.dj-input {
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    outline: none;
+    padding: 2px;
+    width: 100%;
+    flex: 1;
+    min-width: 60px;
+}
+.dj-mini {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 13px;
+    padding: 1px 6px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.15s;
+    white-space: nowrap;
+}
+.dj-mini:hover { background: var(--phosphor); color: #000; }
+.dj-title {
+    font-size: 15px;
+    text-align: center;
+    color: #888;
+    min-height: 17px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dj-wave {
+    width: 100%;
+    height: 72px;
+    background: #000;
+    border: 1px solid #333;
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+}
+.dj-time {
+    font-size: 21px;
+    text-align: center;
+    letter-spacing: 2px;
+}
+.dj-transport {
+    display: flex;
+    gap: 4px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.dj-cues { display: flex; gap: 5px; justify-content: center; }
+.dj-cue {
+    flex: 1;
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    padding: 4px 0;
+    cursor: pointer;
+    transition: 0.12s;
+}
+.dj-cue:active { background: #fff; color: #000; }
+.dj-strip {
+    display: flex;
+    gap: 6px;
+    align-items: flex-start;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+.dj-knob {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    font-size: 11px;
+    color: #888;
+    gap: 2px;
+    flex: 1;
+    min-width: 46px;
+}
+.dj-knob input[type="range"] {
+    width: 100%;
+    height: 14px;
+    accent-color: var(--phosphor);
+    cursor: pointer;
+}
+.dj-bpm {
+    font-size: 17px;
+    text-align: center;
+    padding: 3px 6px;
+    border: 1px dashed #333;
+    color: #ffff00;
+    text-shadow: 0 0 8px #ffff00;
+    cursor: pointer;
+    white-space: nowrap;
+}
+.dj-vu {
+    position: relative;
+    height: 8px;
+    background: #111;
+    border: 1px solid #2a2a2a;
+    overflow: hidden;
+}
+.dj-vu-fill {
+    position: absolute;
+    left: 0; bottom: 0;
+    width: 100%;
+    height: 2%;
+    background: #33ff00;
+    transition: height 0.05s linear;
+    box-shadow: 0 0 8px currentColor;
+}
+.dj-vu-master { height: 14px; margin: 4px 0; }
+.dj-status {
+    font-size: 12px;
+    color: #ff8800;
+    text-align: center;
+    min-height: 13px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+.dj-mixer {
+    width: 148px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-start;
+    border-left: 1px dashed var(--phosphor);
+    border-right: 1px dashed var(--phosphor);
+    padding: 6px 10px;
+    min-height: 0;
+    overflow: auto;
+}
+.dj-mixer-label { font-size: 13px; color: #888; white-space: nowrap; }
+.dj-xfader {
+    writing-mode: bt-lr;
+    -webkit-appearance: slider-vertical;
+    width: 36px;
+    height: 160px;
+    accent-color: var(--phosphor);
+    cursor: pointer;
+}
+.dj-master-val {
+    font-size: 18px;
+    color: #ffff00;
+    text-shadow: 0 0 8px #ffff00;
+}
+.dj-master-btn {
+    width: 100%;
+    background: transparent;
+    border: 2px solid var(--neon-green);
+    color: var(--neon-green);
+    padding: 5px 8px;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.2s;
+}
+.dj-master-btn:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 15px var(--neon-green); }
+.dj-master-btn.danger { border-color: #ff3333; color: #ff3333; }
+.dj-master-btn.danger:hover { background: #ff3333; color: #000; }
+
+.dj-rack {
+    border: 1px solid var(--phosphor);
+    padding: 6px;
+    flex-shrink: 0;
+}
+.dj-rack-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-size: 15px;
+    color: var(--neon-green);
+    text-shadow: 0 0 6px var(--neon-green);
+    padding-bottom: 4px;
+    border-bottom: 1px dashed #333;
+    margin-bottom: 6px;
+}
+.dj-rack-grid { display: flex; flex-direction: column; gap: 3px; }
+.dj-row { display: flex; align-items: center; gap: 4px; }
+.dj-row-label {
+    width: 44px;
+    font-size: 12px;
+    color: #888;
+    flex-shrink: 0;
+}
+.dj-cell {
+    flex: 1;
+    height: 18px;
+    background: #0c0c0c;
+    border: 1px solid #1f1f1f;
+    cursor: pointer;
+    transition: background 0.08s;
+}
+.dj-cell.on { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
+.dj-cell.flash { background: #ffffff; }

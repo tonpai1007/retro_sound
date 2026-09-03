@@ -2,13 +2,8 @@
 //  SHARE ENGINE — Export, Copy, Share URL
 // ============================================================
 
-function exportLRC() {
-    if (lrcData.length === 0) {
-        statusEl.innerText = "STATUS: No lyrics to export";
-        return;
-    }
-
-    const lrcText = lrcData.map(l => {
+function lrcDataToText(lines) {
+    return lines.map(l => {
         const mins = Math.floor(l.time / 60);
         const secs = l.time % 60;
         const mm = String(mins).padStart(2, '0');
@@ -16,6 +11,15 @@ function exportLRC() {
         const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
         return `[${mm}:${ss}.${xx}]${l.text}`;
     }).join('\n');
+}
+
+function exportLRC() {
+    if (lrcData.length === 0) {
+        statusEl.innerText = "STATUS: No lyrics to export";
+        return;
+    }
+
+    const lrcText = lrcDataToText(lrcData);
 
     const blob = new Blob([lrcText], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
@@ -35,14 +39,7 @@ function copyLRC() {
         return;
     }
 
-    const lrcText = lrcData.map(l => {
-        const mins = Math.floor(l.time / 60);
-        const secs = l.time % 60;
-        const mm = String(mins).padStart(2, '0');
-        const ss = String(Math.floor(secs)).padStart(2, '0');
-        const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
-        return `[${mm}:${ss}.${xx}]${l.text}`;
-    }).join('\n');
+    const lrcText = lrcDataToText(lrcData);
 
     navigator.clipboard.writeText(lrcText).then(() => {
         statusEl.innerText = "STATUS: COPIED TO CLIPBOARD";
@@ -57,14 +54,7 @@ function shareURL() {
         return;
     }
 
-    const lrcText = lrcData.map(l => {
-        const mins = Math.floor(l.time / 60);
-        const secs = l.time % 60;
-        const mm = String(mins).padStart(2, '0');
-        const ss = String(Math.floor(secs)).padStart(2, '0');
-        const xx = String(Math.floor((secs % 1) * 100)).padStart(2, '0');
-        return `[${mm}:${ss}.${xx}]${l.text}`;
-    }).join('\n');
+    const lrcText = lrcDataToText(lrcData);
 
     const encoded = btoa(unescape(encodeURIComponent(lrcText)));
     const url = window.location.origin + window.location.pathname + '#' + encoded;

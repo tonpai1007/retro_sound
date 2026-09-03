@@ -92,10 +92,7 @@ async function fetchAndPlay() {
             return;
         }
 
-        let previewUrl = itunesData.results[0].previewUrl;
-        if (backendAvailable) {
-            previewUrl = previewUrl.replace(/^https:\/\//, '/api/audio/proxy?url=');
-        }
+        const previewUrl = audioProxyUrl(itunesData.results[0].previewUrl);
 
         statusEl.innerText = "STATUS: SIGNAL LOCKED";
 
@@ -111,40 +108,18 @@ async function fetchAndPlay() {
                     const lrcResult = await lrcRes.json();
                     if (lrcResult.lrc && lrcResult.lrc.length > 0) {
                         lrcData = lrcResult.lrc;
-                        renderLRC(lrcData);
                     } else {
-                        // Backend returned empty LRC — fall back to client-side timer spacing
                         statusEl.innerText = 'STATUS: Backend LRC empty, using timer sync';
-                        const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
-                        const totalDuration = 30;
-                        const interval = totalDuration / plainLines.length;
-                        lrcData = plainLines.map((text, i) => ({
-                            time: i * interval,
-                            text: text.trim()
-                        }));
-                        renderLRC(lrcData);
+                        lrcData = lrcFromPlain(lyricData.lyrics, 30);
                     }
                 } catch(e) {
-                    // Backend LRC generation call failed — fall back to client-side timer spacing
                     statusEl.innerText = 'STATUS: Backend LRC gen failed, using timer sync';
-                    const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
-                    const totalDuration = 30;
-                    const interval = totalDuration / plainLines.length;
-                    lrcData = plainLines.map((text, i) => ({
-                        time: i * interval,
-                        text: text.trim()
-                    }));
-                    renderLRC(lrcData);
+                    lrcData = lrcFromPlain(lyricData.lyrics, 30);
                 }
+                renderLRC(lrcData);
             } else {
                 // No backend available — use client-side timer spacing
-                const plainLines = lyricData.lyrics.split('\n').filter(l => l.trim());
-                const totalDuration = 30;
-                const interval = totalDuration / plainLines.length;
-                lrcData = plainLines.map((text, i) => ({
-                    time: i * interval,
-                    text: text.trim()
-                }));
+                lrcData = lrcFromPlain(lyricData.lyrics, 30);
                 renderLRC(lrcData);
             }
         }
@@ -217,11 +192,7 @@ function applyLRC() {
     const parsed = parseLRC(text);
     if (parsed.length === 0) {
         const lines = text.split('\n').filter(l => l.trim());
-        const interval = 3;
-        lrcData = lines.map((line, i) => ({
-            time: i * interval,
-            text: line.trim()
-        }));
+        lrcData = lrcFromPlain(text, 3 * lines.length);
     } else {
         lrcData = parsed;
     }
@@ -274,4 +245,5 @@ document.addEventListener('keydown', (e) => {
 console.log("PHANTOM SIGNAL v5 — LRC SYNC ENGINE INITIALIZED");
 console.log("Tip: Press LRC to paste timestamped lyrics, then LOAD a track.");
 detectBackend();
+loadFromHash();
 drawOscilloscope();

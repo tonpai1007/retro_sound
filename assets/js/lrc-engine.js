@@ -28,6 +28,17 @@ function parseLRC(lrcText) {
     return parsed;
 }
 
+function lrcFromPlain(lyrics, duration) {
+    const plainLines = String(lyrics || '').split('\n').filter(l => l.trim());
+    if (plainLines.length === 0) return [];
+    const totalDuration = duration || 30;
+    const interval = totalDuration / plainLines.length;
+    return plainLines.map((text, i) => ({
+        time: i * interval,
+        text: text.trim()
+    }));
+}
+
 function renderLRC(lines) {
     lyricsText.innerHTML = '';
     lrcLineElements = [];

@@ -58,6 +58,22 @@
         .os-nav-btn:hover { background: var(--phosphor); color: #000; }
         .os-nav-btn.active { background: var(--phosphor); color: #000; box-shadow: 0 0 10px var(--phosphor-glow); }
 
+        /* Reduce Effects Toggle */
+        .effects-toggle {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 3px 10px;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.15s;
+            white-space: nowrap;
+        }
+        .effects-toggle:hover { background: var(--neon-green); color: #000; }
+        .effects-toggle[aria-pressed="true"] { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
+
         /* Boot Screen */
         #boot-screen {
             position: absolute;
@@ -73,6 +89,9 @@
     </style>
 </head>
 <body>
+    <!-- Skip link for keyboard users -->
+    <a href="#main-content" class="skip-link">Skip to main content</a>
+
     <div class="crt-monitor">
         <div class="crt-screen">
             <!-- Boot Overlay -->
@@ -81,17 +100,22 @@
             <!-- Main OS Shell -->
             <div class="os-header">
                 <div class="os-title">▓▒░ PHANTOM_OS v1.0 ░▒▓</div>
-                <div class="os-nav" id="main-nav">
-                    <button class="os-nav-btn" data-app="retro-crt" onclick="showApp('retro-crt')">RETRO CRT</button>
-                    <button class="os-nav-btn" data-app="retro-v2" onclick="showApp('retro-v2')">AMBER</button>
-                    <button class="os-nav-btn" data-app="retro-yt" onclick="showApp('retro-yt')">YT MUSIC</button>
-                    <button class="os-nav-btn" data-app="phantom-v4" onclick="showApp('phantom-v4')">PHANTOM v4</button>
-                    <button class="os-nav-btn" data-app="phantom-v5" onclick="showApp('phantom-v5')">LRC SYNC</button>
-                    <button class="os-nav-btn" data-app="dos-edit" onclick="showApp('dos-edit')">DOS EDIT</button>
-                    <button class="os-nav-btn" data-app="dj-mixer" onclick="showApp('dj-mixer')">DJ MIXER</button>
+                <div class="os-nav" id="main-nav" role="tablist" aria-label="Application navigation">
+                    <button class="os-nav-btn" role="tab" data-app="retro-crt" onclick="showApp('retro-crt')" aria-selected="true">RETRO CRT</button>
+                    <button class="os-nav-btn" role="tab" data-app="retro-v2" onclick="showApp('retro-v2')" aria-selected="false">AMBER</button>
+                    <button class="os-nav-btn" role="tab" data-app="retro-yt" onclick="showApp('retro-yt')" aria-selected="false">YT MUSIC</button>
+                    <button class="os-nav-btn" role="tab" data-app="phantom-v4" onclick="showApp('phantom-v4')" aria-selected="false">PHANTOM v4</button>
+                    <button class="os-nav-btn" role="tab" data-app="phantom-v5" onclick="showApp('phantom-v5')" aria-selected="false">LRC SYNC</button>
+                    <button class="os-nav-btn" role="tab" data-app="dos-edit" onclick="showApp('dos-edit')" aria-selected="false">DOS EDIT</button>
+                    <button class="os-nav-btn" role="tab" data-app="dj-mixer" onclick="showApp('dj-mixer')" aria-selected="false">DJ MIXER</button>
                 </div>
-                <div id="clock" style="font-size:18px;">00:00:00</div>
+                <div style="display:flex; gap:8px; align-items:center;">
+                    <button class="effects-toggle" id="effects-toggle" aria-pressed="false" title="Toggle reduced motion effects">⚡ FX</button>
+                    <div id="clock" style="font-size:18px;" aria-live="polite">00:00:00</div>
+                </div>
             </div>
+
+            <main id="main-content">
 
             <!-- ==================== APP: RETRO CRT v1 ==================== -->
             <section id="app-retro-crt" class="app-view active">
@@ -216,55 +240,11 @@
                 </div>
             </section>
 
-            <!-- ==================== APP: DJ MIXER v6 ==================== -->
+            <!-- ==================== APP: DJ MIXER v2 ==================== -->
             <section id="app-dj-mixer" class="app-view">
-                <div style="display:flex; gap:12px; flex-grow:1; min-height:0;">
-                    <!-- DECK A -->
-                    <div style="flex:1; border:1px solid var(--neon-cyan); padding:10px; display:flex; flex-direction:column; gap:8px; box-shadow:inset 0 0 20px rgba(0,255,255,0.1); min-width:0;">
-                        <div style="font-size:20px; padding-bottom:6px; border-bottom:1px dashed var(--phosphor); text-align:center; color:var(--neon-cyan); text-shadow:0 0 8px rgba(0,255,255,0.7);">DECK A [CYAN]</div>
-                        <input type="text" class="deck-input" id="a-ytid" placeholder="YT Video ID" title="YouTube Video ID" style="background:transparent; border:none; border-bottom:1px solid var(--neon-cyan); color:var(--neon-cyan); font-family:'VT323',monospace; font-size:16px; outline:none; text-shadow:0 0 5px rgba(0,255,255,0.5); padding:2px; width:100%;">
-                        <div id="a-title-display" style="font-size:16px; text-align:center; color:#888; min-height:18px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">NO TRACK LOADED</div>
-                        <div id="a-waveform" style="height:50px; background:#000; border:1px solid #333; display:flex; align-items:center; justify-content:center; gap:1px; font-size:14px; overflow:hidden; color:var(--neon-cyan); text-shadow:0 0 5px rgba(0,255,255,0.5);"></div>
-                        <div id="a-time" style="font-size:24px; text-align:center; letter-spacing:2px; color:var(--neon-cyan); text-shadow:0 0 10px var(--neon-cyan);">00:00 / 00:00</div>
-                        <div style="display:flex; align-items:center; gap:6px; font-size:14px;"><span>VOL</span><input type="range" id="a-vol" min="0" max="100" value="80" style="flex:1; cursor:pointer; accent-color:var(--neon-cyan);"></div>
-                        <div id="a-bpm" onclick="editBPM('a')" style="font-size:32px; text-align:center; padding:8px; border:1px dashed #333; color:#ffff00; text-shadow:0 0 10px #ffff00; cursor:pointer;">-- BPM</div>
-                        <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-                            <button class="deck-btn" onclick="loadDeck('a')">LOAD</button>
-                            <button class="deck-btn" id="a-play" onclick="togglePlay('a')">PLAY</button>
-                            <button class="deck-btn" onclick="cueDeck('a')">CUE</button>
-                        </div>
-                        <div id="a-yt-status" style="font-size:12px; color:#ff8800; text-shadow:0 0 5px rgba(255,136,0,0.5); text-align:center;">YT PLAYER: INITIALIZING...</div>
-                    </div>
-
-                    <!-- MIXER -->
-                    <div style="width:120px; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center;">
-                        <div class="crossfader-label" style="font-size:14px; color:#888; text-align:center;">CROSSFADER</div>
-                        <input type="range" class="crossfader-container" id="xfader" min="0" max="100" value="50" style="writing-mode:bt-lr; -webkit-appearance:slider-vertical; width:40px; height:250px; accent-color:var(--phosphor); cursor:pointer;">
-                        <div class="crossfader-label" id="xfader-display" style="font-size:14px; color:#888; text-align:center; white-space:nowrap;">A 1.00 | B 1.00</div>
-                        <button class="master-btn" onclick="syncBPM()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">SYNC</button>
-                        <button class="master-btn" onclick="playBoth()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">PLAY</button>
-                        <button class="master-btn" onclick="pauseBoth()" style="background:transparent; border:2px solid var(--neon-green); color:var(--neon-green); padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px var(--neon-green);">PAUSE</button>
-                        <button class="master-btn danger" onclick="stopAll()" style="background:transparent; border:2px solid #ff3333; color:#ff3333; padding:8px 20px; font-family:'VT323',monospace; font-size:18px; cursor:pointer; text-transform:uppercase; transition:0.2s; text-shadow:0 0 8px #ff3333;">STOP</button>
-                    </div>
-
-                    <!-- DECK B -->
-                    <div style="flex:1; border:1px solid var(--neon-magenta); padding:10px; display:flex; flex-direction:column; gap:8px; box-shadow:inset 0 0 20px rgba(255,0,255,0.1); min-width:0;">
-                        <div style="font-size:20px; padding-bottom:6px; border-bottom:1px dashed var(--phosphor); text-align:center; color:var(--neon-magenta); text-shadow:0 0 8px rgba(255,0,255,0.7);">DECK B [MAGENTA]</div>
-                        <input type="text" class="deck-input" id="b-ytid" placeholder="YT Video ID" title="YouTube Video ID" style="background:transparent; border:none; border-bottom:1px solid var(--neon-magenta); color:var(--neon-magenta); font-family:'VT323',monospace; font-size:16px; outline:none; text-shadow:0 0 5px rgba(255,0,255,0.5); padding:2px; width:100%;">
-                        <div id="b-title-display" style="font-size:16px; text-align:center; color:#888; min-height:18px; overflow:hidden; white-space:nowrap; text-overflow:ellipsis;">NO TRACK LOADED</div>
-                        <div id="b-waveform" style="height:50px; background:#000; border:1px solid #333; display:flex; align-items:center; justify-content:center; gap:1px; font-size:14px; overflow:hidden; color:var(--neon-magenta); text-shadow:0 0 5px rgba(255,0,255,0.5);"></div>
-                        <div id="b-time" style="font-size:24px; text-align:center; letter-spacing:2px; color:var(--neon-magenta); text-shadow:0 0 10px var(--neon-magenta);">00:00 / 00:00</div>
-                        <div style="display:flex; align-items:center; gap:6px; font-size:14px;"><span>VOL</span><input type="range" id="b-vol" min="0" max="100" value="80" style="flex:1; cursor:pointer; accent-color:var(--neon-magenta);"></div>
-                        <div id="b-bpm" onclick="editBPM('b')" style="font-size:32px; text-align:center; padding:8px; border:1px dashed #333; color:#ffff00; text-shadow:0 0 10px #ffff00; cursor:pointer;">-- BPM</div>
-                        <div style="display:flex; gap:6px; justify-content:center; flex-wrap:wrap;">
-                            <button class="deck-btn" onclick="loadDeck('b')">LOAD</button>
-                            <button class="deck-btn" id="b-play" onclick="togglePlay('b')">PLAY</button>
-                            <button class="deck-btn" onclick="cueDeck('b')">CUE</button>
-                        </div>
-                        <div id="b-yt-status" style="font-size:12px; color:#ff8800; text-shadow:0 0 5px rgba(255,136,0,0.5); text-align:center;">YT PLAYER: INITIALIZING...</div>
-                    </div>
-                </div>
+                <div id="dj-app"></div>
             </section>
+            </main>
         </div>
     </div>
 
@@ -663,7 +643,7 @@
         'assets/js/apps/retro-crt.js',
         'assets/js/apps/retro-v2.js',
         'assets/js/apps/dos-edit.js',
-        'assets/js/apps/dj-mixer.js'
+        'assets/js/dj-engine.js'
     ];
     moduleScripts.forEach(function(src) {
         const s = document.createElement('script');
@@ -672,7 +652,7 @@
         document.head.appendChild(s);
     });
 
-    // Aliases for inline onclick handlers (DJ mixer aliases now handled by dj-mixer.js module)
+    // Aliases for inline onclick handlers (DJ aliases now handled by dj-engine.js module)
     function togglePlay(deck) { if (typeof togglePlay6 === 'function') togglePlay6(deck); }
     function cueDeck(deck) { if (typeof cueDeck6 === 'function') cueDeck6(deck); }
     function loadDeck(deck) { if (typeof loadDeck6 === 'function') loadDeck6(deck); }
@@ -718,6 +698,63 @@
             } catch(e) { backendAvailable = false; }
         }
         detectBackend();
+
+        // --- ACCESSIBILITY: Effects Toggle ---
+        const effectsToggle = document.getElementById('effects-toggle');
+        if (effectsToggle) {
+            // Check for saved preference or system preference
+            const savedPref = localStorage.getItem('reducedEffects');
+            const systemPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (savedPref === 'true' || (savedPref === null && systemPrefersReduced)) {
+                document.body.classList.add('reduced-effects');
+                effectsToggle.setAttribute('aria-pressed', 'true');
+            }
+
+            effectsToggle.addEventListener('click', function() {
+                const isReduced = document.body.classList.toggle('reduced-effects');
+                effectsToggle.setAttribute('aria-pressed', isReduced ? 'true' : 'false');
+                localStorage.setItem('reducedEffects', isReduced);
+            });
+        }
+
+        // --- ACCESSIBILITY: Keyboard Navigation for Launcher ---
+        const navContainer = document.getElementById('main-nav');
+        if (navContainer) {
+            navContainer.addEventListener('keydown', function(e) {
+                const tabs = Array.from(navContainer.querySelectorAll('[role="tab"]'));
+                const currentIndex = tabs.indexOf(document.activeElement);
+                if (currentIndex === -1) return;
+
+                let newIndex = currentIndex;
+                if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    newIndex = (currentIndex + 1) % tabs.length;
+                } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    newIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    newIndex = 0;
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    newIndex = tabs.length - 1;
+                }
+
+                if (newIndex !== currentIndex) {
+                    tabs[newIndex].focus();
+                    tabs[newIndex].click();
+                }
+            });
+        }
+
+        // Update aria-selected when app changes
+        const originalShowApp = showApp;
+        showApp = function(name) {
+            originalShowApp(name);
+            document.querySelectorAll('.os-nav-btn').forEach(function(btn) {
+                btn.setAttribute('aria-selected', btn.dataset.app === name ? 'true' : 'false');
+            });
+        };
     </script>
 </body>
 </html>

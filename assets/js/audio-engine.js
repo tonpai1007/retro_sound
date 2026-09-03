@@ -23,8 +23,12 @@ function initAudio() {
 
 function drawOscilloscope() {
     requestAnimationFrame(drawOscilloscope);
-    canvas.width = canvas.offsetWidth * 2;
-    canvas.height = canvas.offsetHeight * 2;
+    const w = canvas.offsetWidth * 2;
+    const h = canvas.offsetHeight * 2;
+    if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+    }
 
     const bufferLength = analyser ? analyser.frequencyBinCount : 1024;
     const dataArray = new Uint8Array(bufferLength);
@@ -75,8 +79,10 @@ function playAudio(url, lrcLines) {
     });
 
     currentAudio.addEventListener('canplay', () => {
-        audioSource = audioCtx.createMediaElementSource(currentAudio);
-        audioSource.connect(analyser);
+        if (!audioSource) {
+            audioSource = audioCtx.createMediaElementSource(currentAudio);
+            audioSource.connect(analyser);
+        }
         currentAudio.play();
         isPlaying = true;
         statusEl.innerText = "STATUS: PLAYING (LRC SYNC ACTIVE)";
@@ -89,6 +95,7 @@ function playAudio(url, lrcLines) {
     });
 
     currentAudio.addEventListener('error', (e) => {
+        stopBroadcast();
         statusEl.innerText = "STATUS: AUDIO ERROR";
         lyricsText.innerHTML = '<span style="color:#ff0000;">> AUDIO LOAD FAILED. Check URL or CORS.</span>';
     });

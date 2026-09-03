@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>MS-DOS EDIT v2</title>
-    <link rel="stylesheet" href="crt-theme.css">
+    <link rel="stylesheet" href="../../crt-theme.css">
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         * { box-sizing: border-box; }
@@ -100,7 +100,7 @@
             flex-shrink: 0;
             position: relative;
         }
-        .menu-item { cursor: pointer; position: relative; padding: 2px 0; user-select: none; }
+        .menu-item { cursor: pointer; position: relative; padding: 2px 0; -webkit-user-select: none; user-select: none; }
         .menu-item u { text-decoration: underline; }
         .menu-dropdown {
             display: none;
@@ -116,11 +116,29 @@
             z-index: 20;
         }
         .menu-item:hover .menu-dropdown,
-        .menu-item.active .menu-dropdown { display: block; }
+        .menu-item.active .menu-dropdown,
+        .menu-item.open .menu-dropdown { display: block; }
         .dropdown-item { padding: 5px 10px; cursor: pointer; }
-        .dropdown-item:hover { background: var(--phosphor); color: #000; }
+        .dropdown-item:hover, .dropdown-item:focus { background: var(--phosphor); color: #000; outline: none; }
         .dropdown-item u { text-decoration: underline; }
         .dropdown-item .shortcut { float: right; color: #666; font-size: 16px; }
+
+        /* Effects toggle */
+        .effects-toggle {
+            background: transparent;
+            border: 1px solid var(--neon-green);
+            color: var(--neon-green);
+            padding: 2px 8px;
+            font-family: 'VT323', monospace;
+            font-size: 14px;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: 0.15s;
+            white-space: nowrap;
+            margin-left: auto;
+        }
+        .effects-toggle:hover { background: var(--neon-green); color: #000; }
+        .effects-toggle[aria-pressed="true"] { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
         .status-bar {
             background: #000;
             color: var(--phosphor);
@@ -178,6 +196,9 @@
     </style>
 </head>
 <body>
+    <!-- Skip link for keyboard users -->
+    <a href="#editor-input" class="skip-link">Skip to editor</a>
+
     <div class="crt-monitor">
         <div class="crt-screen">
             <div class="file-modal" id="file-modal">
@@ -190,15 +211,17 @@
                     <button class="crt-btn success" onclick="saveFileDialog()">SAVE AS</button>
                 </div>
             </div>
-            <div class="find-bar" id="find-bar">
-                <input type="text" id="find-input" placeholder="Search..." oninput="doFind()">
-                <span class="match-count" id="match-count">0/0</span>
+            <div class="find-bar" id="find-bar" role="search">
+                <label for="find-input" style="font-size:18px;">Find:</label>
+                <input type="text" id="find-input" aria-label="Search text" title="Enter text to search" placeholder="Search..." oninput="doFind()">
+                <span class="match-count" id="match-count" aria-live="polite">0/0</span>
                 <button class="crt-btn" onclick="findNext()">DOWN</button>
                 <button class="crt-btn" onclick="findPrev()">UP</button>
                 <button class="crt-btn danger" onclick="closeFind()">X</button>
             </div>
             <div class="top-bar">
                 <span id="filename-display">UNTITLED.BAT</span>
+                <button class="effects-toggle" id="effects-toggle" aria-pressed="false" title="Toggle reduced motion effects">⚡ FX</button>
                 <span id="save-status">NEW</span>
             </div>
             <div class="editor-container">
@@ -546,6 +569,107 @@
                 document.querySelectorAll('.menu-item').forEach(function(m) { m.classList.remove('active'); });
             }
         });
+
+        // --- ACCESSIBILITY: Effects Toggle ---
+        const effectsToggle = document.getElementById('effects-toggle');
+        if (effectsToggle) {
+            const savedPref = localStorage.getItem('reducedEffects');
+            const systemPrefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+            if (savedPref === 'true' || (savedPref === null && systemPrefersReduced)) {
+                document.body.classList.add('reduced-effects');
+                effectsToggle.setAttribute('aria-pressed', 'true');
+            }
+            effectsToggle.addEventListener('click', function() {
+                const isReduced = document.body.classList.toggle('reduced-effects');
+                effectsToggle.setAttribute('aria-pressed', isReduced ? 'true' : 'false');
+                localStorage.setItem('reducedEffects', isReduced);
+            });
+        }
+
+        // --- ACCESSIBILITY: Keyboard Menu Navigation ---
+        const menuBar = document.querySelector('.menu-bar');
+        if (menuBar) {
+            menuBar.addEventListener('keydown', function(e) {
+                const items = Array.from(menuBar.querySelectorAll('.menu-item'));
+                const currentIndex = items.indexOf(document.activeElement.closest('.menu-item'));
+                if (currentIndex === -1) return;
+
+                let newIndex = currentIndex;
+                if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    newIndex = (currentIndex + 1) % items.length;
+                    items[newIndex].querySelector('.dropdown-item')?.focus();
+                    items[currentIndex].classList.remove('open');
+                    items[newIndex].classList.add('open');
+                    items[newIndex].querySelector('.dropdown-item')?.focus();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    newIndex = (currentIndex - 1 + items.length) % items.length;
+                    items[currentIndex].classList.remove('open');
+                    items[newIndex].classList.add('open');
+                    items[newIndex].querySelector('.dropdown-item')?.focus();
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    items[currentIndex].classList.add('open');
+                    const firstItem = items[currentIndex].querySelector('.dropdown-item');
+                    if (firstItem) firstItem.focus();
+                } else if (e.key === 'Escape') {
+                    items[currentIndex].classList.remove('open');
+                    editorInput.focus();
+                }
+            });
+
+            // Make menu items focusable and clickable via keyboard
+            menuBar.querySelectorAll('.menu-item').forEach(function(item) {
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('role', 'button');
+                item.addEventListener('click', function() {
+                    this.classList.toggle('open');
+                });
+                item.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        this.classList.toggle('open');
+                        if (this.classList.contains('open')) {
+                            const firstItem = this.querySelector('.dropdown-item');
+                            if (firstItem) firstItem.focus();
+                        }
+                    }
+                });
+            });
+
+            // Keyboard navigation within dropdowns
+            menuBar.querySelectorAll('.menu-dropdown').forEach(function(dropdown) {
+                dropdown.addEventListener('keydown', function(e) {
+                    const items = Array.from(dropdown.querySelectorAll('.dropdown-item'));
+                    const currentIndex = items.indexOf(document.activeElement);
+                    if (currentIndex === -1) return;
+
+                    if (e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        const next = (currentIndex + 1) % items.length;
+                        items[next].focus();
+                    } else if (e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        const prev = (currentIndex - 1 + items.length) % items.length;
+                        items[prev].focus();
+                    } else if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        items[currentIndex].click();
+                        dropdown.parentElement.classList.remove('open');
+                    } else if (e.key === 'Escape') {
+                        dropdown.parentElement.classList.remove('open');
+                        dropdown.parentElement.focus();
+                    }
+                });
+            });
+
+            // Make dropdown items focusable
+            menuBar.querySelectorAll('.dropdown-item').forEach(function(item) {
+                item.setAttribute('tabindex', '0');
+                item.setAttribute('role', 'menuitem');
+            });
+        }
     </script>
 </body>
 </html>

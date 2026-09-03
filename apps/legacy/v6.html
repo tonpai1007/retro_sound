@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PHANTOM DJ v2 — Web Audio Mixer</title>
+    <link rel="stylesheet" href="crt-theme.css">
+    <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            background-color: #050505;
+            font-family: 'VT323', monospace;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            overflow: auto;
+        }
+        .crt-monitor {
+            width: 1180px;
+            height: 900px;
+            max-width: 98%;
+            min-height: 620px;
+        }
+        .crt-screen {
+            animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s;
+            padding: 15px;
+        }
+        .header {
+            font-size: 20px;
+            border-bottom: 2px solid var(--phosphor);
+            padding-bottom: 6px;
+            margin-bottom: 10px;
+            text-shadow: 0 0 8px var(--phosphor-glow);
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+        .header .badge {
+            font-size: 11px;
+            color: var(--neon-green);
+            border: 1px solid var(--neon-green);
+            padding: 0 5px;
+            text-shadow: 0 0 5px var(--neon-green);
+        }
+        .lrc-zone {
+            border-top: 1px dashed var(--phosphor);
+            padding-top: 6px;
+            margin-top: 6px;
+            flex-shrink: 0;
+            display: flex;
+            gap: 8px;
+            min-height: 120px;
+        }
+        .lrc-zone .lyrics-panel {
+            flex: 1;
+            max-height: 96px;
+            font-size: 17px;
+        }
+        .lrc-buttons {
+            width: 170px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            justify-content: flex-start;
+        }
+        .lrc-buttons .dj-mini { font-size: 14px; padding: 3px 8px; }
+        .status-bar {
+            margin-top: 6px;
+            font-size: 14px;
+            color: var(--neon-green);
+            text-shadow: 0 0 5px var(--neon-green);
+            display: flex;
+            justify-content: space-between;
+            flex-shrink: 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="crt-monitor">
+        <div class="crt-screen">
+            <!-- Hidden YouTube Aux Containers -->
+            <div id="a-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+            <div id="b-yt-container" style="position:absolute;width:1px;height:1px;left:-9999px;opacity:0;pointer-events:none;"></div>
+
+            <div class="header">
+                <span>▓▒░ PHANTOM_DJ v2.0 [WEB_AUDIO] ░▒▓</span>
+                <span class="badge">DUAL DECK + SEQ</span>
+                <span id="clock">00:00:00</span>
+            </div>
+
+            <div id="dj-app"></div>
+
+            <!-- LRC KARAOKE ZONE -->
+            <div class="lrc-zone">
+                <div class="lyrics-panel" id="lrc-panel">> NO LRC LOADED<br>> LOAD A TRACK, THEN PRESS LRC</div>
+                <div class="lrc-buttons">
+                    <button class="dj-mini" onclick="openLRCModal()">LRC</button>
+                    <button class="dj-mini" onclick="exportLRC()">EXPORT</button>
+                    <button class="dj-mini" onclick="copyLRC()">COPY</button>
+                    <button class="dj-mini" onclick="shareURL()">SHARE</button>
+                </div>
+            </div>
+
+            <div class="status-bar">
+                <span id="status">FILE / URL / YT PER DECK — CLICK BPM TO EDIT — SYNC = B FOLLMASTER</span>
+                <span id="hint">CTRL+1/2 PLAY · CTRL+SPACE PLAY BOTH</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- LRC Editor Modal -->
+    <div class="modal-overlay" id="lrc-modal">
+        <div class="modal-header">
+            <span style="font-size:16px; text-shadow:0 0 8px var(--phosphor-glow);">LRC EDITOR</span>
+            <button class="dj-mini" onclick="closeLRCModal()">CLOSE</button>
+        </div>
+        <div class="modal-body">
+            <div style="color:#888; font-size:12px; margin-bottom:6px;">Format: <span style="color:var(--neon-green);">[mm:ss.xx]Lyric text</span></div>
+            <textarea id="lrc-textarea" spellcheck="false"></textarea>
+        </div>
+        <div class="modal-footer">
+            <button class="dj-mini danger" onclick="closeLRCModal()">CANCEL</button>
+            <button class="dj-mini" onclick="applyLRC()">APPLY</button>
+        </div>
+    </div>
+
+    <script>
+        function updateClock() {
+            const d = new Date();
+            document.getElementById('clock').innerText = d.toLocaleTimeString('en-US', {hour12: false});
+        }
+        setInterval(updateClock, 1000);
+        updateClock();
+
+        document.addEventListener('keydown', (e) => {
+            if (e.ctrlKey && e.key === '1') { e.preventDefault(); togglePlay('a'); }
+            if (e.ctrlKey && e.key === '2') { e.preventDefault(); togglePlay('b'); }
+            if (e.ctrlKey && e.key === ' ') { e.preventDefault(); playBoth(); }
+        });
+    </script>
+
+    <script src="assets/js/dj-engine.js"></script>
+
+    <script>
+        window.addEventListener('DOMContentLoaded', () => {
+            const st = document.getElementById('status');
+            if (st) st.innerText = 'ENGINE READY. LOAD MP3/WAV/OGG VIA FILE, URL, OR YT ID ON EACH DECK.';
+        });
+    </script>
+</body>
+</html>
