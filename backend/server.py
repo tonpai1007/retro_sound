@@ -4,12 +4,20 @@ import json
 import time
 import socket
 import ipaddress
+import logging
 import requests
 from urllib.parse import urlparse
 from flask import Flask, request, jsonify, send_from_directory, Response
 from cache import get_cached, set_cached, init_db
 
 app = Flask(__name__, static_folder='..', static_url_path='')
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s'
+)
+logger = logging.getLogger(__name__)
 
 init_db()
 
@@ -20,6 +28,11 @@ ALLOWED_HOSTS = {
     'api.lyrics.ovh', 'itunes.apple.com', 'audio-ssl.itunes.apple.com',
     'audio-ssl.mzstatic.com', 'music.apple.com', 'audiocdn.apple.com',
 }
+
+# Rate limiting: max requests per window per IP
+RATE_LIMIT = 30
+RATE_WINDOW = 60  # seconds
+request_log = {}
 
 
 def _is_safe_url(url):
@@ -48,6 +61,30 @@ def _is_safe_url(url):
                 or addr.is_reserved or addr.is_multicast or addr.is_unspecified):
             return False
     return True
+
+
+def _check_rate_limit(ip):
+    now = time.time()
+    if ip not in request_log:
+        request_log[ip] = []
+    # Remove old entries outside the window
+    request_log[ip] = [t for t in request_log[ip] if now - t < RATE_WINDOW]
+    if len(request_log[ip]) >= RATE_LIMIT:
+        return False
+    request_log[ip].append(now)
+    return True
+
+
+@app.before_request
+def before_request():
+    # Skip rate limiting for health checks
+    if request.path == '/api/health':
+        return
+    ip = request.remote_addr
+    if not _check_rate_limit(ip):
+        logger.warning(f'Rate limit exceeded for {ip}')
+        return jsonify({'error': 'Rate limit exceeded. Try again later.'}), 429
+    logger.info(f'{request.method} {request.path} from {ip}')
 
 
 @app.route('/api/health')

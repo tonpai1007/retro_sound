@@ -639,20 +639,13 @@
     });
 
 // --- MODULE SCRIPT LOADING ---
-    const moduleScripts = [
-        'assets/js/apps/retro-crt.js',
-        'assets/js/apps/retro-v2.js',
-        'assets/js/apps/dos-edit.js',
-        'assets/js/dj-engine.js'
-    ];
-    moduleScripts.forEach(function(src) {
-        const s = document.createElement('script');
-        s.src = src;
-        s.async = false;
-        document.head.appendChild(s);
-    });
+    // Only load the DJ engine module (other apps are inline in this SPA)
+    const djModule = document.createElement('script');
+    djModule.src = 'assets/js/dj-engine.js';
+    djModule.async = false;
+    document.head.appendChild(djModule);
 
-    // Aliases for inline onclick handlers (DJ aliases now handled by dj-engine.js module)
+    // Aliases for inline onclick handlers (DJ aliases handled by dj-engine.js module)
     function togglePlay(deck) { if (typeof togglePlay6 === 'function') togglePlay6(deck); }
     function cueDeck(deck) { if (typeof cueDeck6 === 'function') cueDeck6(deck); }
     function loadDeck(deck) { if (typeof loadDeck6 === 'function') loadDeck6(deck); }
