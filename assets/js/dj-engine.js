@@ -69,7 +69,19 @@ function deckState(name) {
         loopOut: 0,
         title: '',
         vu: 0,
-        nodes: null
+        nodes: null,
+        delayTime: 0,
+        delayFb: 0,
+        reverbMix: 0,
+        pan: 0,
+        distortion: 0,
+        bitcrush: 0,
+        flanger: 0,
+        delaySync: false,
+        delayNote: 0.25,
+        filterRes: 0.6,
+        tapTimes: [],
+        presetName: ''
     };
 }
 
@@ -82,6 +94,7 @@ function ensureCtx() {
         dj.ctx.masterIn = dj.ctx.createGain();
         dj.ctx.shaper = dj.ctx.createWaveShaper();
         dj.ctx.masterGain = dj.ctx.createGain();
+        dj.ctx.compressor = dj.ctx.createDynamicsCompressor();
         dj.ctx.masterAnalyser = dj.ctx.createAnalyser();
         dj.ctx.masterAnalyser.fftSize = 1024;
         dj.ctx.noiseBuf = makeNoiseBuf(dj.ctx);
@@ -89,7 +102,8 @@ function ensureCtx() {
         dj.ctx.shaper.connect(dj.ctx.masterGain);
         dj.ctx.masterGain.gain.value = 0.9;
         dj.ctx.masterIn.connect(dj.ctx.shaper);
-        dj.ctx.masterGain.connect(dj.ctx.masterAnalyser);
+        dj.ctx.masterGain.connect(dj.ctx.compressor);
+        dj.ctx.compressor.connect(dj.ctx.masterAnalyser);
         dj.ctx.masterAnalyser.connect(dj.ctx.destination);
         dj.ctx.rackIn = dj.ctx.createGain();
         dj.ctx.rackIn.gain.value = 0.8;
@@ -123,6 +137,29 @@ function setShaperCurve(on) {
     dj.ctx.shaper.curve = curve;
 }
 
+function makeDistortionCurve(amount) {
+    const n = 1024;
+    const curve = new Float32Array(n);
+    const k = amount * 100;
+    for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * 2 - 1;
+        curve[i] = (Math.PI + k) * x / (Math.PI + k * Math.abs(x));
+    }
+    return curve;
+}
+
+function makeBitcrushCurve(amount) {
+    const n = 1024;
+    const curve = new Float32Array(n);
+    const bits = Math.max(1, 16 - Math.floor(amount * 15));
+    const step = Math.pow(2, bits);
+    for (let i = 0; i < n; i++) {
+        const x = (i / (n - 1)) * 2 - 1;
+        curve[i] = Math.round(x * step) / step;
+    }
+    return curve;
+}
+
 function buildDeckGraph(name) {
     const d = dj.decks[name];
     if (d.nodes) return;
@@ -133,27 +170,70 @@ function buildDeckGraph(name) {
         mid: c.createBiquadFilter(),
         high: c.createBiquadFilter(),
         filter: c.createBiquadFilter(),
+        distortion: c.createWaveShaper(),
+        bitcrusher: c.createWaveShaper(),
+        flangerDelay: c.createDelay(0.05),
+        flangerLfo: c.createOscillator(),
+        flangerDepth: c.createGain(),
+        panner: c.createStereoPanner(),
         gain: c.createGain(),
         xfGain: c.createGain(),
-        analyser: c.createAnalyser()
+        analyser: c.createAnalyser(),
+        spectrum: c.createAnalyser(),
+        delay: c.createDelay(2.0),
+        delayFb: c.createGain(),
+        delayMix: c.createGain(),
+        reverbSend: c.createGain(),
+        reverbRet: c.createGain()
     };
     const n = d.nodes;
     n.low.type = 'lowshelf'; n.low.frequency.value = 130;
     n.mid.type = 'peaking'; n.mid.frequency.value = 1000; n.mid.Q.value = 1.0;
     n.high.type = 'highshelf'; n.high.frequency.value = 6500;
     n.filter.type = 'lowpass'; n.filter.frequency.value = 22000; n.filter.Q.value = 0.6;
+    n.distortion.curve = makeDistortionCurve(0);
+    n.distortion.oversample = '4x';
+    n.bitcrusher.curve = makeBitcrushCurve(0);
+    n.bitcrusher.oversample = 'none';
+    n.flangerLfo.type = 'sine';
+    n.flangerLfo.frequency.value = 0.5;
+    n.flangerDepth.gain.value = 0;
+    n.flangerDelay.delayTime.value = 0.005;
+    n.panner.pan.value = 0;
+    n.delay.delayTime.value = 0.3;
+    n.delayFb.gain.value = 0;
+    n.delayMix.gain.value = 0;
+    n.reverbSend.gain.value = 0;
+    n.reverbRet.gain.value = 0.3;
     n.preGain.gain.value = 0.9;
     n.gain.gain.value = 0.85;
     n.xfGain.gain.value = 1;
     n.analyser.fftSize = 1024;
+    n.spectrum.fftSize = 256;
     n.preGain.connect(n.low);
     n.low.connect(n.mid);
     n.mid.connect(n.high);
     n.high.connect(n.filter);
-    n.filter.connect(n.gain);
+    n.filter.connect(n.distortion);
+    n.distortion.connect(n.bitcrusher);
+    n.bitcrusher.connect(n.flangerDelay);
+    n.flangerDelay.connect(n.flangerDepth);
+    n.flangerDepth.connect(n.panner);
+    n.panner.connect(n.gain);
     n.gain.connect(n.xfGain);
     n.xfGain.connect(n.analyser);
     n.analyser.connect(c.masterIn);
+    n.xfGain.connect(n.spectrum);
+    n.xfGain.connect(n.delayMix);
+    n.delayMix.connect(n.delay);
+    n.delay.connect(n.delayFb);
+    n.delayFb.connect(n.delayMix);
+    n.delayMix.connect(c.masterIn);
+    n.xfGain.connect(n.reverbSend);
+    n.reverbSend.connect(n.reverbRet);
+    n.reverbRet.connect(c.masterIn);
+    n.flangerLfo.connect(n.flangerDepth);
+    n.flangerLfo.start(0);
 }
 
 // ============================================================
@@ -182,7 +262,11 @@ function deckHTML(x) {
         + '</div>'
         + loadRowHTML(x, c)
         + '<div class="dj-title" id="' + x + '-title">NO TRACK LOADED</div>'
+        + '<div class="dj-viz-row">'
         + '<canvas class="dj-wave" id="' + x + '-wave" height="72"></canvas>'
+        + '<canvas class="dj-spectrum" id="' + x + '-spectrum" height="64"></canvas>'
+        + '<canvas class="dj-osc" id="' + x + '-osc" height="64"></canvas>'
+        + '</div>'
         + '<div class="dj-time" id="' + x + '-time" style="color:' + c + ';text-shadow:0 0 8px ' + c + ';">00:00 / 00:00</div>'
         + '<div class="dj-transport">'
         + '<button class="dj-mini" id="' + x + '-play" style="border-color:' + c + ';color:' + c + '" title="Ctrl+' + (x === 'a' ? '1' : '2') + '">PLAY</button>'
@@ -190,6 +274,7 @@ function deckHTML(x) {
         + '<button class="dj-mini" id="' + x + '-loopin" title="Set loop IN at playhead">LOOP IN</button>'
         + '<button class="dj-mini" id="' + x + '-loopout" title="Set loop OUT at playhead">LOOP OUT</button>'
         + '<button class="dj-mini" id="' + x + '-loop" title="Toggle loop">LOOP</button>'
+        + '<button class="dj-mini dj-tap" id="' + x + '-tap" style="border-color:' + c + ';color:' + c + ';" title="Tap tempo">TAP</button>'
         + '</div>'
         + '<div class="dj-cues" id="' + x + '-cues">'
         + cuePadHTML(x, 0, c) + cuePadHTML(x, 1, c) + cuePadHTML(x, 2, c)
@@ -198,7 +283,33 @@ function deckHTML(x) {
         + '<label class="dj-knob">EQ LO <input type="range" id="' + x + '-eq-low" min="-12" max="12" value="0"></label>'
         + '<label class="dj-knob">MID <input type="range" id="' + x + '-eq-mid" min="-12" max="12" value="0"></label>'
         + '<label class="dj-knob">HI <input type="range" id="' + x + '-eq-high" min="-12" max="12" value="0"></label>'
-        + '<label class="dj-knob">FILTER <input type="range" id="' + x + '-filter" min="0" max="100" value="100"></label>'
+        + '</div>'
+        + '<div class="dj-strip">'
+        + '<label class="dj-knob">FLT <input type="range" id="' + x + '-filter" min="0" max="100" value="100"></label>'
+        + '<label class="dj-knob">RES <input type="range" id="' + x + '-filter-res" min="0" max="100" value="30"></label>'
+        + '<button class="dj-mini dj-filter-btn" id="' + x + '-filter-type" style="border-color:' + c + ';color:' + c + ';" title="Cycle filter type">LP</button>'
+        + '</div>'
+        + '<div class="dj-strip dj-fx-strip">'
+        + '<label class="dj-knob">PAN <input type="range" id="' + x + '-pan" min="-100" max="100" value="0"></label>'
+        + '<label class="dj-knob">DELAY <input type="range" id="' + x + '-delay" min="0" max="100" value="0"></label>'
+        + '<label class="dj-knob">DLY FB <input type="range" id="' + x + '-delayfb" min="0" max="80" value="0"></label>'
+        + '<button class="dj-mini dj-delay-sync" id="' + x + '-delay-sync" style="border-color:' + c + ';color:' + c + ';" title="Sync delay to BPM">SYNC</button>'
+        + '<select id="' + x + '-delay-note" class="dj-select" style="border-color:' + c + ';color:' + c + ';">'
+        + '<option value="0.25">1/4</option>'
+        + '<option value="0.375">1/4 D</option>'
+        + '<option value="0.16666667">1/6</option>'
+        + '<option value="0.125">1/8</option>'
+        + '<option value="0.1875">1/8 D</option>'
+        + '<option value="0.0625">1/16</option>'
+        + '<option value="0.09375">1/16 D</option>'
+        + '<option value="0.03125">1/32</option>'
+        + '</select>'
+        + '</div>'
+        + '<div class="dj-strip dj-fx-strip">'
+        + '<label class="dj-knob">REVERB <input type="range" id="' + x + '-reverb" min="0" max="100" value="0"></label>'
+        + '<label class="dj-knob">DIST <input type="range" id="' + x + '-distortion" min="0" max="100" value="0"></label>'
+        + '<label class="dj-knob">CRUSH <input type="range" id="' + x + '-bitcrush" min="0" max="100" value="0"></label>'
+        + '<label class="dj-knob">FLANG <input type="range" id="' + x + '-flanger" min="0" max="100" value="0"></label>'
         + '</div>'
         + '<div class="dj-strip">'
         + '<label class="dj-knob">TRIM <input type="range" id="' + x + '-trim" min="0" max="200" value="90"></label>'
@@ -207,6 +318,11 @@ function deckHTML(x) {
         + '<span class="dj-bpm" id="' + x + '-bpm" title="Click to set BPM manually">-- BPM</span>'
         + '</div>'
         + '<div class="dj-vu"><div class="dj-vu-fill" id="' + x + '-vu"></div></div>'
+        + '<div class="dj-preset-bar">'
+        + '<input type="text" id="' + x + '-preset-name" class="dj-preset-input" placeholder="preset name">'
+        + '<button class="dj-mini dj-preset-btn" id="' + x + '-preset-save" style="border-color:' + c + ';color:' + c + ';" title="Save FX preset">SAVE</button>'
+        + '<button class="dj-mini dj-preset-btn" id="' + x + '-preset-load" style="border-color:' + c + ';color:' + c + ';" title="Load FX preset">LOAD</button>'
+        + '</div>'
         + '<div class="dj-status" id="' + x + '-status">ENGINE: STANDBY</div>'
         + '</div>';
 }
@@ -229,6 +345,10 @@ function mixerHTML() {
         + '<button class="dj-master-btn" id="dj-pauseboth">PAUSE</button>'
         + '<button class="dj-master-btn danger" id="dj-stopall">STOP</button>'
         + '<button class="dj-master-btn" id="dj-limiter" title="Master soft-clip">LIM ON</button>'
+        + '<button class="dj-master-btn" id="dj-clone" title="Copy A to B">A=></button>'
+        + '<button class="dj-master-btn" id="dj-swap" title="Swap A and B">SWAP</button>'
+        + '<button class="dj-master-btn" id="dj-record" title="Record master output">REC</button>'
+        + '<div class="dj-circular-viz"><canvas id="dj-circular" width="200" height="200"></canvas></div>'
         + '</div>';
 }
 
@@ -281,6 +401,9 @@ function buildDJApp() {
     byId('dj-pauseboth').addEventListener('click', () => pauseBoth6());
     byId('dj-stopall').addEventListener('click', () => stopAll6());
     byId('dj-limiter').addEventListener('click', toggleLimiter6);
+    byId('dj-clone').addEventListener('click', () => cloneDeck('a', 'b'));
+    byId('dj-swap').addEventListener('click', swapDecks);
+    byId('dj-record').addEventListener('click', toggleRecord);
 
     byId('dj-rack-play').addEventListener('click', rackPlay6);
 
@@ -304,6 +427,15 @@ function wireDeck(x) {
     byId(x + '-bpm').addEventListener('click', () => editBPM6(x));
     byId(x + '-master').addEventListener('click', () => setMaster6(x));
     byId(x + '-head').addEventListener('click', () => setMaster6(x));
+    byId(x + '-filter-type').addEventListener('click', () => cycleFilterType(x));
+    byId(x + '-tap').addEventListener('click', () => tapTempo(x));
+    byId(x + '-delay-sync').addEventListener('click', () => toggleDelaySync(x));
+    byId(x + '-delay-note').addEventListener('change', (e) => {
+        dj.decks[x].delayNote = parseFloat(e.target.value);
+        if (dj.decks[x].delaySync) updateDelaySync(x);
+    });
+    byId(x + '-preset-save').addEventListener('click', () => savePreset(x));
+    byId(x + '-preset-load').addEventListener('click', () => loadPreset(x));
 
     bindRange(x + '-eq-low', (v) => dj.decks[x].nodes && (dj.decks[x].nodes.low.gain.value = v));
     bindRange(x + '-eq-mid', (v) => dj.decks[x].nodes && (dj.decks[x].nodes.mid.gain.value = v));
@@ -313,14 +445,68 @@ function wireDeck(x) {
         const freq = 40 * Math.pow(550, v / 100);
         dj.decks[x].nodes.filter.frequency.value = freq;
     });
-    bindRange(x + '-trim', (v) => dj.decks[x].nodes && (dj.decks[x].nodes.preGain.gain.value = v / 100));
+    bindRange(x + '-filter-res', (v) => {
+        if (!dj.decks[x].nodes) return;
+        dj.decks[x].nodes.filter.Q.value = 0.1 + (v / 100) * 20;
+        dj.decks[x].filterRes = 0.1 + (v / 100) * 20;
+    });
+    bindRange(x + '-pan', (v) => {
+        if (!dj.decks[x].nodes) return;
+        dj.decks[x].nodes.panner.pan.value = v / 100;
+        dj.decks[x].pan = v / 100;
+    });
+    bindRange(x + '-delay', (v) => {
+        if (!dj.decks[x].nodes) return;
+        dj.decks[x].nodes.delayMix.gain.value = v / 100;
+        dj.decks[x].delayTime = v / 100;
+    });
+    bindRange(x + '-delayfb', (v) => {
+        if (!dj.decks[x].nodes) return;
+        dj.decks[x].nodes.delayFb.gain.value = Math.min(0.8, v / 100);
+        dj.decks[x].delayFb = v / 100;
+    });
+    bindRange(x + '-reverb', (v) => {
+        if (!dj.decks[x].nodes) return;
+        dj.decks[x].nodes.reverbSend.gain.value = v / 100;
+        dj.decks[x].reverbMix = v / 100;
+    });
+    bindRange(x + '-distortion', (v) => {
+        if (!dj.decks[x].nodes) return;
+        const amt = v / 100;
+        dj.decks[x].nodes.distortion.curve = makeDistortionCurve(amt);
+        dj.decks[x].distortion = amt;
+    });
+    bindRange(x + '-bitcrush', (v) => {
+        if (!dj.decks[x].nodes) return;
+        const amt = v / 100;
+        dj.decks[x].nodes.bitcrusher.curve = makeBitcrushCurve(amt);
+        dj.decks[x].bitcrush = amt;
+    });
+    bindRange(x + '-flanger', (v) => {
+        if (!dj.decks[x].nodes) return;
+        const amt = v / 100;
+        dj.decks[x].nodes.flangerDepth.gain.value = amt * 0.005;
+        dj.decks[x].flanger = amt;
+    });
+    bindRange(x + '-trim', (v) => {
+        if (dj.decks[x].nodes) dj.decks[x].nodes.preGain.gain.value = v / 100;
+        onXfader();
+    });
     bindRange(x + '-pitch', (v) => setPitch6(x, parseFloat(v)));
-    bindRange(x + '-fader', (v) => dj.decks[x].nodes && (dj.decks[x].nodes.gain.gain.value = v / 100));
+    bindRange(x + '-fader', (v) => {
+        if (dj.decks[x].nodes) dj.decks[x].nodes.gain.gain.value = v / 100;
+        onXfader();
+    });
 
     const wave = byId(x + '-wave');
     if (wave) {
         wave.addEventListener('pointerdown', (e) => waveSeek(x, e));
         wave.addEventListener('pointermove', (e) => { if (e.buttons === 1) waveSeek(x, e); });
+    }
+    const spec = byId(x + '-spectrum');
+    if (spec) {
+        spec.addEventListener('pointerdown', (e) => specSeek(x, e));
+        spec.addEventListener('pointermove', (e) => { if (e.buttons === 1) specSeek(x, e); });
     }
 }
 
@@ -452,8 +638,40 @@ function setupAudioDeck(x, buf, title) {
     d.syncRate = 1;
     d.rate = 1;
     d.playing = false;
+    d.delayTime = 0;
+    d.delayFb = 0;
+    d.reverbMix = 0;
+    d.pan = 0;
+    d.distortion = 0;
+    d.bitcrush = 0;
+    d.flanger = 0;
+    d.delaySync = false;
+    d.delayNote = 0.25;
+    d.filterRes = 0.6;
+    d.tapTimes = [];
+    specPeaks[x] = null;
     byId(x + '-pitch').value = 0;
+    byId(x + '-pan').value = 0;
+    byId(x + '-delay').value = 0;
+    byId(x + '-delayfb').value = 0;
+    byId(x + '-reverb').value = 0;
+    byId(x + '-distortion').value = 0;
+    byId(x + '-bitcrush').value = 0;
+    byId(x + '-flanger').value = 0;
+    byId(x + '-filter-res').value = 30;
+    byId(x + '-delay-sync').innerText = 'SYNC';
+    byId(x + '-delay-note').value = '0.25';
     byId(x + '-loop').innerText = 'LOOP';
+    if (d.nodes) {
+        d.nodes.panner.pan.value = 0;
+        d.nodes.delayMix.gain.value = 0;
+        d.nodes.delayFb.gain.value = 0;
+        d.nodes.reverbSend.gain.value = 0;
+        d.nodes.filter.Q.value = 0.6;
+        d.nodes.distortion.curve = makeDistortionCurve(0);
+        d.nodes.bitcrusher.curve = makeBitcrushCurve(0);
+        d.nodes.flangerDepth.gain.value = 0;
+    }
     updateDeckUI(x);
     setStatus(x, 'AUDIO ' + (d.bpm ? d.bpm + ' BPM' : 'BPM UNKNOWN') + (d.bpmSource === 'auto' ? ' (AUTO)' : ''));
     updateMasterBpm();
@@ -534,13 +752,178 @@ function seekDeck(x, pos) {
     drawWave(x, true);
 }
 
-function waveSeek(x, e) {
-    const canvas = byId(x + '-wave');
+function drawCircularViz() {
+    const canvas = byId('dj-circular');
+    if (!canvas) return;
+    const ctx2 = canvas.getContext('2d');
+    const W = canvas.width;
+    const H = canvas.height;
+    const beatFlash = beatCooldown > 4 ? 1 : 0;
+    ctx2.fillStyle = beatFlash ? 'rgba(0,0,0,0.08)' : 'rgba(0,0,0,0.18)';
+    ctx2.fillRect(0, 0, W, H);
+    const analyser = dj.ctx && dj.ctx.masterAnalyser;
+    if (!analyser) return;
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    analyser.getByteFrequencyData(data);
+    const cx = W / 2;
+    const cy = H / 2;
+    const baseR = Math.min(W, H) * 0.22;
+    const bars = 64;
+    const step = Math.max(1, Math.floor(bufLen / bars));
+    for (let i = 0; i < bars; i++) {
+        const val = data[i * step] || 0;
+        const angle = (i / bars) * Math.PI * 2 - Math.PI / 2;
+        const barH = (val / 255) * baseR * 1.2;
+        const x1 = cx + Math.cos(angle) * baseR;
+        const y1 = cy + Math.sin(angle) * baseR;
+        const x2 = cx + Math.cos(angle) * (baseR + barH);
+        const y2 = cy + Math.sin(angle) * (baseR + barH);
+        const hue = (i / bars) * 60 + (beatFlash ? 180 : 0);
+        ctx2.strokeStyle = i % 2 === 0 ? '#00ffff' : '#ff00ff';
+        ctx2.shadowBlur = beatFlash ? 12 : 4;
+        ctx2.shadowColor = ctx2.strokeStyle;
+        ctx2.lineWidth = beatFlash ? 3 : 2;
+        ctx2.beginPath();
+        ctx2.moveTo(x1, y1);
+        ctx2.lineTo(x2, y2);
+        ctx2.stroke();
+    }
+    ctx2.shadowBlur = 0;
+    ctx2.strokeStyle = beatFlash ? '#ffffff' : '#333';
+    ctx2.lineWidth = 1;
+    ctx2.beginPath();
+    ctx2.arc(cx, cy, baseR, 0, Math.PI * 2);
+    ctx2.stroke();
+}
+
+let lastBeatEnergy = 0;
+let beatCooldown = 0;
+
+function detectBeat() {
+    if (!dj.ctx || !dj.ctx.masterAnalyser) return false;
+    const analyser = dj.ctx.masterAnalyser;
+    const buf = new Uint8Array(analyser.fftSize);
+    analyser.getByteTimeDomainData(buf);
+    let sum = 0;
+    for (let i = 0; i < buf.length; i++) {
+        const v = (buf[i] - 128) / 128;
+        sum += v * v;
+    }
+    const energy = Math.sqrt(sum / buf.length);
+    const now = performance.now();
+    if (beatCooldown > 0) { beatCooldown--; return false; }
+    if (energy > lastBeatEnergy * 1.4 && energy > 0.05) {
+        lastBeatEnergy = energy;
+        beatCooldown = 8;
+        return true;
+    }
+    lastBeatEnergy = energy * 0.9 + lastBeatEnergy * 0.1;
+    return false;
+}
+
+function flashOnBeat() {
+    if (!dj.alive) return;
+    const isBeat = detectBeat();
+    if (isBeat) {
+        document.querySelectorAll('.dj-deck').forEach((deck) => {
+            deck.style.boxShadow = 'inset 0 0 30px rgba(255,255,255,0.15)';
+            setTimeout(() => { deck.style.boxShadow = ''; }, 80);
+        });
+    }
+}
+
+function drawOscilloscope(x) {
+    const canvas = byId(x + '-osc');
+    if (!canvas) return;
     const d = dj.decks[x];
-    if (!canvas || d.mode !== 'audio' || !d.dur) return;
-    const rect = canvas.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
-    seekDeck(x, ratio * d.dur);
+    const W = canvas.clientWidth || 600;
+    const H = canvas.clientHeight || 64;
+    canvas.width = W;
+    canvas.height = H;
+    const ctx2 = canvas.getContext('2d');
+    ctx2.fillStyle = '#000';
+    ctx2.fillRect(0, 0, W, H);
+    const analyser = d.nodes && d.nodes.analyser;
+    if (!analyser) return;
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    analyser.getByteTimeDomainData(data);
+    const c = DJ_COLORS[x];
+    ctx2.lineWidth = 2;
+    ctx2.strokeStyle = c;
+    ctx2.shadowBlur = 6;
+    ctx2.shadowColor = c;
+    ctx2.beginPath();
+    const sliceWidth = W / bufLen;
+    let px = 0;
+    for (let i = 0; i < bufLen; i++) {
+        const v = data[i] / 128.0;
+        const py = (v * H) / 2;
+        if (i === 0) ctx2.moveTo(px, py);
+        else ctx2.lineTo(px, py);
+        px += sliceWidth;
+    }
+    ctx2.lineTo(W, H / 2);
+    ctx2.stroke();
+    ctx2.shadowBlur = 0;
+}
+
+let specPeaks = {};
+
+function drawSpectrum(x) {
+    const canvas = byId(x + '-spectrum');
+    if (!canvas) return;
+    const d = dj.decks[x];
+    const W = canvas.clientWidth || 600;
+    const H = canvas.clientHeight || 64;
+    canvas.width = W;
+    canvas.height = H;
+    if (!W || !H) return;
+    const ctx2 = canvas.getContext('2d');
+    ctx2.fillStyle = '#000';
+    ctx2.fillRect(0, 0, W, H);
+    if (d.mode === 'yt' && d.playing) {
+        const c = DJ_COLORS[x];
+        const barCount = 48;
+        const bw = W / barCount;
+        const t = performance.now() * 0.003;
+        for (let i = 0; i < barCount; i++) {
+            const val = (Math.sin(t + i * 0.3) * 0.5 + 0.5) * (Math.random() * 0.5 + 0.5);
+            const bh = val * H * 0.8;
+            ctx2.fillStyle = c;
+            ctx2.shadowBlur = 4;
+            ctx2.shadowColor = c;
+            ctx2.fillRect(i * bw, H - bh, Math.max(1, bw - 1), bh);
+        }
+        ctx2.shadowBlur = 0;
+        return;
+    }
+    const analyser = d.nodes && d.nodes.spectrum;
+    if (!analyser) return;
+    const bufLen = analyser.frequencyBinCount;
+    const data = new Uint8Array(bufLen);
+    analyser.getByteFrequencyData(data);
+    const barCount = 48;
+    const step = Math.max(1, Math.floor(bufLen / barCount));
+    const bw = W / barCount;
+    const c = DJ_COLORS[x];
+    if (!specPeaks[x]) specPeaks[x] = new Float32Array(barCount);
+    for (let i = 0; i < barCount; i++) {
+        const val = data[i * step] || 0;
+        if (val > specPeaks[x][i]) specPeaks[x][i] = val;
+        else specPeaks[x][i] = Math.max(0, specPeaks[x][i] - 1.5);
+        const bh = (val / 255) * H * 0.9;
+        const ph = (specPeaks[x][i] / 255) * H * 0.9;
+        ctx2.fillStyle = c;
+        ctx2.shadowBlur = 4;
+        ctx2.shadowColor = c;
+        ctx2.fillRect(i * bw, H - bh, Math.max(1, bw - 1), bh);
+        ctx2.fillStyle = '#ffffff';
+        ctx2.shadowBlur = 0;
+        ctx2.fillRect(i * bw, H - ph - 2, Math.max(1, bw - 1), 2);
+    }
+    ctx2.shadowBlur = 0;
 }
 
 function togglePlay6(x) {
@@ -698,9 +1081,14 @@ function setPitch6(x, v) {
 
 function updateRate(x) {
     const d = dj.decks[x];
-    if (d.mode !== 'audio') return;
-    d.rate = d.syncRate * (1 + d.pitch);
-    if (d.src) d.src.playbackRate.value = d.rate;
+    if (d.mode === 'audio') {
+        d.rate = d.syncRate * (1 + d.pitch);
+        if (d.src) d.src.playbackRate.value = d.rate;
+    } else if (d.mode === 'yt') {
+        d.rate = d.syncRate * (1 + d.pitch);
+        const p = dj.yt[x];
+        if (p && p.setPlaybackRate) p.setPlaybackRate(Math.max(0.25, Math.min(2, d.rate)));
+    }
     setPitchText(x);
 }
 
@@ -711,6 +1099,22 @@ function setPitchText(x) {
         const pct = Math.round((d.rate - 1) * 100 * 10) / 10;
         el.innerText = (d.bpm ? d.bpm + ' BPM' : '-- BPM') + (pct ? '  ' + (pct > 0 ? '+' : '') + pct + '%' : '');
     }
+}
+
+const FILTER_TYPES = ['lowpass', 'highpass', 'bandpass', 'notch'];
+const FILTER_LABELS = ['LP', 'HP', 'BP', 'NT'];
+
+function cycleFilterType(x) {
+    const d = dj.decks[x];
+    if (!d.nodes) return;
+    const cur = d.nodes.filter.type;
+    let idx = FILTER_TYPES.indexOf(cur);
+    if (idx < 0) idx = 0;
+    idx = (idx + 1) % FILTER_TYPES.length;
+    d.nodes.filter.type = FILTER_TYPES[idx];
+    const btn = byId(x + '-filter-type');
+    if (btn) btn.innerText = FILTER_LABELS[idx];
+    setStatus(x, 'FILTER: ' + FILTER_LABELS[idx]);
 }
 
 function syncBPM6() {
@@ -776,10 +1180,24 @@ function drawWave(x, force) {
     ctx2.fillStyle = '#000';
     ctx2.fillRect(0, 0, W, H);
     if (d.mode !== 'audio' || !d.peaks) {
-        ctx2.fillStyle = '#444';
-        ctx2.font = '16px VT323, monospace';
-        ctx2.textAlign = 'center';
-        ctx2.fillText(d.mode === 'yt' ? 'YT STREAM — NO ANALYSIS' : 'LOAD AUDIO TO SEE WAVEFORM', W / 2, H / 2 + 5);
+        if (d.mode === 'yt' && d.playing) {
+            const t = performance.now() * 0.005;
+            ctx2.fillStyle = c;
+            ctx2.shadowBlur = 6;
+            ctx2.shadowColor = c;
+            const barCount = 40;
+            const bw = W / barCount;
+            for (let i = 0; i < barCount; i++) {
+                const h = (Math.sin(t + i * 0.4) * 0.5 + 0.5) * (Math.random() * 0.4 + 0.3) * H;
+                ctx2.fillRect(i * bw, (H - h) / 2, Math.max(1, bw - 1), h);
+            }
+            ctx2.shadowBlur = 0;
+        } else {
+            ctx2.fillStyle = '#444';
+            ctx2.font = '16px VT323, monospace';
+            ctx2.textAlign = 'center';
+            ctx2.fillText(d.mode === 'yt' ? 'YT STREAM — NO ANALYSIS' : 'LOAD AUDIO TO SEE WAVEFORM', W / 2, H / 2 + 5);
+        }
         return;
     }
     const c = DJ_COLORS[x];
@@ -803,11 +1221,14 @@ function drawWave(x, force) {
     const half = H / 2;
     const bw = W / d.peaks.length;
     ctx2.fillStyle = c;
+    ctx2.shadowBlur = 8;
+    ctx2.shadowColor = c;
     for (let i = 0; i < d.peaks.length; i++) {
         const top = half - d.peaks[i].mx * half * 0.9;
         const bot = half - d.peaks[i].mn * half * 0.9;
         ctx2.fillRect(i * bw, top, Math.max(0.7, bw - 0.5), Math.max(1, bot - top));
     }
+    ctx2.shadowBlur = 0;
 
     ctx2.fillStyle = '#33ff00';
     d.hot.forEach((cue, i) => {
@@ -825,19 +1246,16 @@ function drawWave(x, force) {
 
     const pos = getPos(d);
     const playX = (pos / dur) * W;
+    ctx2.shadowBlur = 6;
+    ctx2.shadowColor = '#ffffff';
     ctx2.fillStyle = '#ffffff';
     ctx2.fillRect(playX - 1, 0, 3, H);
+    ctx2.shadowColor = '#33ff00';
     ctx2.fillStyle = '#33ff00';
     ctx2.globalAlpha = 0.7;
     ctx2.fillRect(playX - 1, 0, 1, H);
     ctx2.globalAlpha = 1;
-}
-
-function fmtTime(s) {
-    if (isNaN(s) || s < 0) return '00:00';
-    const m = Math.floor(s / 60);
-    const sec = Math.floor(s % 60);
-    return String(m).padStart(2, '0') + ':' + String(sec).padStart(2, '0');
+    ctx2.shadowBlur = 0;
 }
 
 // ============================================================
@@ -1240,6 +1658,7 @@ function loadFromHash() {
 // ============================================================
 function engineTick() {
     if (!dj.alive) return;
+    const isBeat = detectBeat();
     ['a', 'b'].forEach((x) => {
         const d = dj.decks[x];
         if (d.mode === 'audio') {
@@ -1252,15 +1671,32 @@ function engineTick() {
                 d.vu = rms;
             }
             drawWave(x, false);
+            drawSpectrum(x);
+            drawOscilloscope(x);
         } else if (d.mode === 'yt') {
             const p = dj.yt[x];
             if (p && p.getCurrentTime) {
                 const t = byId(x + '-time');
                 if (t) t.innerText = fmtTime(p.getCurrentTime() || 0) + ' / ' + fmtTime(p.getDuration() || 0);
             }
+            drawWave(x, false);
+            drawSpectrum(x);
+            drawOscilloscope(x);
         }
     });
     if (dj.ctx && dj.ctx.masterAnalyser) setVu('dj-master-vu', vuRms(dj.ctx.masterAnalyser));
+    ['a', 'b'].forEach((x) => { if (dj.decks[x].delaySync) updateDelaySync(x); });
+    drawCircularViz();
+    if (isBeat) {
+        document.querySelectorAll('.dj-deck').forEach((deck) => {
+            deck.style.boxShadow = 'inset 0 0 30px rgba(255,255,255,0.15)';
+            setTimeout(() => { deck.style.boxShadow = ''; }, 80);
+        });
+        document.querySelectorAll('.dj-osc').forEach((c) => {
+            c.style.boxShadow = '0 0 12px rgba(255,255,255,0.3)';
+            setTimeout(() => { c.style.boxShadow = ''; }, 80);
+        });
+    }
     lrcSyncTick();
     dj.raf = requestAnimationFrame(engineTick);
 }
@@ -1287,10 +1723,270 @@ function setVu(id, level) {
     el.style.background = db > -6 ? '#ff3355' : (db > -18 ? '#ffbb00' : '#33ff00');
 }
 
+// ============================================================
+//  DELAY SYNC
+// ============================================================
+function toggleDelaySync(x) {
+    const d = dj.decks[x];
+    if (!d || !d.nodes) return;
+    d.delaySync = !d.delaySync;
+    const btn = byId(x + '-delay-sync');
+    if (btn) {
+        btn.innerText = d.delaySync ? 'SYNC ON' : 'SYNC';
+        btn.style.background = d.delaySync ? '#fff' : '';
+        btn.style.color = d.delaySync ? '#000' : '';
+    }
+    if (d.delaySync) updateDelaySync(x);
+    setStatus(x, d.delaySync ? 'DELAY SYNC ON' : 'DELAY FREE');
+}
+
+function updateDelaySync(x) {
+    const d = dj.decks[x];
+    if (!d || !d.nodes || !d.delaySync) return;
+    const bpm = d.bpm || dj.decks[dj.syncMaster].bpm || 128;
+    const beatSec = 60 / bpm;
+    const delaySec = beatSec * d.delayNote;
+    d.nodes.delay.delayTime.value = Math.max(0.01, Math.min(2.0, delaySec));
+    d.delayTime = d.nodes.delay.delayTime.value;
+}
+
+// ============================================================
+//  TAP TEMPO
+// ============================================================
+function tapTempo(x) {
+    const d = dj.decks[x];
+    const now = performance.now();
+    d.tapTimes = d.tapTimes || [];
+    d.tapTimes.push(now);
+    if (d.tapTimes.length > 8) d.tapTimes.shift();
+    if (d.tapTimes.length < 2) return;
+    let sum = 0;
+    for (let i = 1; i < d.tapTimes.length; i++) sum += d.tapTimes[i] - d.tapTimes[i - 1];
+    const avg = sum / (d.tapTimes.length - 1);
+    const bpm = Math.round(60000 / avg);
+    if (bpm >= 40 && bpm <= 300) {
+        d.bpm = bpm;
+        d.bpmSource = 'tap';
+        updateDeckUI(x);
+        updateMasterBpm();
+        setStatus(x, bpm + ' BPM (TAP)');
+        if (d.delaySync) updateDelaySync(x);
+    }
+    const btn = byId(x + '-tap');
+    if (btn) {
+        btn.style.background = '#fff';
+        btn.style.color = '#000';
+        setTimeout(() => { btn.style.background = ''; btn.style.color = ''; }, 120);
+    }
+}
+
+// ============================================================
+//  FX PRESETS
+// ============================================================
+function savePreset(x) {
+    const d = dj.decks[x];
+    const nameInput = byId(x + '-preset-name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) { setStatus(x, 'ENTER PRESET NAME'); return; }
+    const preset = {
+        eqLow: d.nodes && d.nodes.low ? d.nodes.low.gain.value : 0,
+        eqMid: d.nodes && d.nodes.mid ? d.nodes.mid.gain.value : 0,
+        eqHigh: d.nodes && d.nodes.high ? d.nodes.high.gain.value : 0,
+        filterFreq: d.nodes && d.nodes.filter ? d.nodes.filter.frequency.value : 22000,
+        filterQ: d.filterRes || 0.6,
+        filterType: d.nodes && d.nodes.filter ? d.nodes.filter.type : 'lowpass',
+        pan: d.pan || 0,
+        delayMix: d.delayTime || 0,
+        delayFb: d.delayFb || 0,
+        delaySync: d.delaySync || false,
+        delayNote: d.delayNote || 0.25,
+        reverbMix: d.reverbMix || 0,
+        distortion: d.distortion || 0,
+        bitcrush: d.bitcrush || 0,
+        flanger: d.flanger || 0
+    };
+    const key = 'dj-preset-' + x + '-' + name;
+    localStorage.setItem(key, JSON.stringify(preset));
+    setStatus(x, 'PRESET SAVED: ' + name.toUpperCase());
+}
+
+function loadPreset(x) {
+    const nameInput = byId(x + '-preset-name');
+    const name = nameInput ? nameInput.value.trim() : '';
+    if (!name) { setStatus(x, 'ENTER PRESET NAME'); return; }
+    const key = 'dj-preset-' + x + '-' + name;
+    const raw = localStorage.getItem(key);
+    if (!raw) { setStatus(x, 'PRESET NOT FOUND'); return; }
+    const p = JSON.parse(raw);
+    const d = dj.decks[x];
+    if (!d.nodes) return;
+    d.nodes.low.gain.value = p.eqLow || 0;
+    d.nodes.mid.gain.value = p.eqMid || 0;
+    d.nodes.high.gain.value = p.eqHigh || 0;
+    d.nodes.filter.frequency.value = p.filterFreq || 22000;
+    d.nodes.filter.Q.value = p.filterQ || 0.6;
+    d.nodes.filter.type = p.filterType || 'lowpass';
+    d.pan = p.pan || 0;
+    d.nodes.panner.pan.value = d.pan;
+    d.delayTime = p.delayMix || 0;
+    d.nodes.delayMix.gain.value = d.delayTime;
+    d.delayFb = p.delayFb || 0;
+    d.nodes.delayFb.gain.value = Math.min(0.8, d.delayFb);
+    d.delaySync = p.delaySync || false;
+    d.delayNote = p.delayNote || 0.25;
+    d.reverbMix = p.reverbMix || 0;
+    d.nodes.reverbSend.gain.value = d.reverbMix;
+    d.distortion = p.distortion || 0;
+    d.nodes.distortion.curve = makeDistortionCurve(d.distortion);
+    d.bitcrush = p.bitcrush || 0;
+    d.nodes.bitcrusher.curve = makeBitcrushCurve(d.bitcrush);
+    d.flanger = p.flanger || 0;
+    d.nodes.flangerDepth.gain.value = d.flanger * 0.005;
+    byId(x + '-pan').value = d.pan * 100;
+    byId(x + '-delay').value = d.delayTime * 100;
+    byId(x + '-delayfb').value = d.delayFb * 100;
+    byId(x + '-reverb').value = d.reverbMix * 100;
+    byId(x + '-distortion').value = d.distortion * 100;
+    byId(x + '-bitcrush').value = d.bitcrush * 100;
+    byId(x + '-flanger').value = d.flanger * 100;
+    const syncBtn = byId(x + '-delay-sync');
+    if (syncBtn) {
+        syncBtn.innerText = d.delaySync ? 'SYNC ON' : 'SYNC';
+        syncBtn.style.background = d.delaySync ? '#fff' : '';
+        syncBtn.style.color = d.delaySync ? '#000' : '';
+    }
+    const noteSel = byId(x + '-delay-note');
+    if (noteSel) noteSel.value = d.delayNote;
+    const ftBtn = byId(x + '-filter-type');
+    if (ftBtn) {
+        const labels = { lowpass: 'LP', highpass: 'HP', bandpass: 'BP', notch: 'NT' };
+        ftBtn.innerText = labels[d.nodes.filter.type] || 'LP';
+    }
+    setStatus(x, 'PRESET LOADED: ' + name.toUpperCase());
+}
+
+// ============================================================
+//  DECK CLONE / SWAP
+// ============================================================
+function cloneDeck(src, dst) {
+    const s = dj.decks[src];
+    const d = dj.decks[dst];
+    if (!s || !d) return;
+    if (s.mode === 'audio' && s.buffer) {
+        d.buffer = s.buffer;
+        d.peaks = s.peaks;
+        d.dur = s.dur;
+        d.bpm = s.bpm;
+        d.bpmSource = s.bpmSource;
+        d.title = s.title + ' (CLONE)';
+        d.mode = 'audio';
+        d.hot = [null, null, null];
+        d.loopIn = 0;
+        d.loopOut = d.dur;
+        d.loopOn = false;
+        d.offset = 0;
+        d.pitch = 0;
+        d.syncRate = 1;
+        d.rate = 1;
+        d.playing = false;
+        stopSource(d);
+        if (d.nodes) {
+            d.nodes.low.gain.value = s.nodes.low.gain.value;
+            d.nodes.mid.gain.value = s.nodes.mid.gain.value;
+            d.nodes.high.gain.value = s.nodes.high.gain.value;
+            d.nodes.filter.frequency.value = s.nodes.filter.frequency.value;
+            d.nodes.filter.Q.value = s.nodes.filter.Q.value;
+            d.nodes.filter.type = s.nodes.filter.type;
+            d.nodes.panner.pan.value = s.nodes.panner.pan.value;
+            d.nodes.delayMix.gain.value = s.nodes.delayMix.gain.value;
+            d.nodes.delayFb.gain.value = s.nodes.delayFb.gain.value;
+            d.nodes.reverbSend.gain.value = s.nodes.reverbSend.gain.value;
+            d.nodes.distortion.curve = s.nodes.distortion.curve;
+            d.nodes.bitcrusher.curve = s.nodes.bitcrusher.curve;
+            d.nodes.flangerDepth.gain.value = s.nodes.flangerDepth.gain.value;
+        }
+        d.pan = s.pan;
+        d.delayTime = s.delayTime;
+        d.delayFb = s.delayFb;
+        d.reverbMix = s.reverbMix;
+        d.distortion = s.distortion;
+        d.bitcrush = s.bitcrush;
+        d.flanger = s.flanger;
+        d.delaySync = s.delaySync;
+        d.delayNote = s.delayNote;
+        d.filterRes = s.filterRes;
+        updateDeckUI(dst);
+        setStatus(dst, 'CLONED FROM ' + src.toUpperCase());
+    } else if (s.mode === 'yt') {
+        startYt(dst, s.title.replace('YT: ', ''));
+        setStatus(dst, 'YT CLONE FROM ' + src.toUpperCase());
+    }
+}
+
+function swapDecks() {
+    const tempBpm = dj.decks.a.bpm;
+    dj.decks.a.bpm = dj.decks.b.bpm;
+    dj.decks.b.bpm = tempBpm;
+    const tempTitle = dj.decks.a.title;
+    dj.decks.a.title = dj.decks.b.title;
+    dj.decks.b.title = tempTitle;
+    updateDeckUI('a');
+    updateDeckUI('b');
+    updateMasterBpm();
+    setStatus('a', 'SWAPPED');
+    setStatus('b', 'SWAPPED');
+}
+
+// ============================================================
+//  RECORDING / SAMPLE GRAB
+// ============================================================
+let recording = false;
+let mediaRecorder = null;
+let recordedChunks = [];
+
+function toggleRecord() {
+    if (recording) {
+        stopRecording();
+    } else {
+        startRecording();
+    }
+}
+
+function startRecording() {
+    if (!dj.ctx) { ensureCtx(); }
+    const dest = dj.ctx.createMediaStreamDestination();
+    dj.ctx.masterAnalyser.connect(dest);
+    recordedChunks = [];
+    mediaRecorder = new MediaRecorder(dest.stream);
+    mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) recordedChunks.push(e.data); };
+    mediaRecorder.onstop = () => {
+        const blob = new Blob(recordedChunks, { type: 'audio/webm' });
+        const url = URL.createObjectURL(blob);
+        const a = byId('a-url');
+        if (a) a.value = url;
+        setStatus('a', 'RECORDED — URL LOADED IN DECK A');
+        dj.ctx.masterAnalyser.disconnect(dest);
+    };
+    mediaRecorder.start();
+    recording = true;
+    const btn = byId('dj-record');
+    if (btn) { btn.innerText = 'STOP'; btn.style.background = '#ff3355'; btn.style.color = '#fff'; }
+    setStatus('a', 'RECORDING...');
+}
+
+function stopRecording() {
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') mediaRecorder.stop();
+    recording = false;
+    const btn = byId('dj-record');
+    if (btn) { btn.innerText = 'REC'; btn.style.background = ''; btn.style.color = ''; }
+}
+
 function resizeWaves() {
     ['a', 'b'].forEach((x) => {
         const cv = byId(x + '-wave');
         if (cv && cv.width) drawWave(x, true);
+        const sp = byId(x + '-spectrum');
+        if (sp && sp.width) drawSpectrum(x);
     });
 }
 

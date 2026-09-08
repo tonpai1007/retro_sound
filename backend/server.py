@@ -139,6 +139,33 @@ def get_preview():
         return jsonify({'error': 'Preview service unavailable'}), 502
 
 
+@app.route('/api/search')
+def search_songs():
+    term = request.args.get('term', '').strip()
+    if not term:
+        return jsonify({'error': 'Missing term'}), 400
+
+    try:
+        resp = requests.get(ITUNES_API, params={
+            'term': term,
+            'entity': 'song',
+            'limit': 5
+        }, timeout=10)
+        resp.raise_for_status()
+        data = resp.json()
+        results = []
+        for r in data.get('results', []):
+            results.append({
+                'artist': r.get('artistName', ''),
+                'title': r.get('trackName', ''),
+                'album': r.get('collectionName', ''),
+                'previewUrl': r.get('previewUrl', '')
+            })
+        return jsonify({'results': results})
+    except requests.exceptions.RequestException:
+        return jsonify({'error': 'Search service unavailable'}), 502
+
+
 @app.route('/api/lrc/generate', methods=['POST'])
 def generate_lrc():
     body = request.get_json()
@@ -194,7 +221,25 @@ def serve_static(path):
     return send_from_directory(app.static_folder, path)
 
 
+BANNER = r"""
+  ___  ___  ___  _ __ ___   ___  _ __  _   _ _ __  ___  ___
+ / __|/ __|| _ \| '  \___| / _ \| '  \| | | | '  \/ __|/ _ \
+ \__ \ (_ ||  _/| |) |--> | (_) | |) | |_| | |) | (__|  __/
+ |___/\___/|_|  | .__/|___|\___/| .__/\__,_| .__/ \___|\___|
+                |_|                     |_|      |_|
+                           CRT SIGNAL v1.0
+"""
+
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    print(f"Retro Sound Backend running on http://localhost:{port}")
+    print(BANNER)
+    print(f"  [CRT BOOT]  Phosphor array initialized")
+    print(f"  [API]       Lyrics cache     -> /api/lyrics")
+    print(f"  [API]       LRC generator    -> /api/lrc/generate")
+    print(f"  [API]       Audio proxy      -> /api/audio/proxy")
+    print(f"  [API]       iTunes preview   -> /api/preview")
+    print(f"  [API]       Song search      -> /api/search")
+    print(f"  [API]       Health check     -> /api/health")
+    print(f"\n  Server listening on http://0.0.0.0:{port}")
+    print(f"  Open http://localhost:{port} in your browser\n")
     app.run(host='0.0.0.0', port=port, debug=False)

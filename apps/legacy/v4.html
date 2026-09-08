@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE PHANTOM SIGNAL</title>
+    <title>THE CRT SIGNAL</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -104,7 +104,7 @@
         <div class="crt-screen">
             <div class="ui-wrapper">
                 <div class="header">
-                    <span>▓▒░ PHANTOM_SIGNAL.v4 ░▒▓</span>
+                     <span>▓▒░ CRT_SIGNAL.v4 ░▒▓</span>
                     <span id="clock">00:00:00</span>
                 </div>
                 
@@ -129,7 +129,7 @@
                             <button id="broadcast-btn" onclick="startBroadcast()">BROADCAST</button>
                         </div>
                         <div class="lyrics-panel" id="lyrics-text">
-                            > AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>> TUNE BELOW 92.0 FOR PHANTOM STATION
+                            > AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>                             > TUNE BELOW 92.0 FOR SIGNAL STATION
                         </div>
                         <div class="status-bar" id="status">STATUS: STANDBY</div>
                     </div>
@@ -224,7 +224,7 @@
 
             if (freq < 920) {
                 // NUMBERS STATION
-                statusEl.innerText = "STATUS: PHANTOM STATION DETECTED";
+                statusEl.innerText = "STATUS: SIGNAL STATION DETECTED";
                 startNumbersStation();
             } else if (freq > 1040) {
                 statusEl.innerText = "STATUS: MUSIC BAND. PRESS BROADCAST";

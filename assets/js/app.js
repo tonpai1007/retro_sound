@@ -242,7 +242,7 @@ document.addEventListener('keydown', (e) => {
 // ============================================================
 //  INIT
 // ============================================================
-console.log("PHANTOM SIGNAL v5 — LRC SYNC ENGINE INITIALIZED");
+console.log("CRT SIGNAL v5 — LRC SYNC ENGINE INITIALIZED");
 console.log("Tip: Press LRC to paste timestamped lyrics, then LOAD a track.");
 detectBackend();
 loadFromHash();

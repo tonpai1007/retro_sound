@@ -11,7 +11,7 @@ function tuneRadio() {
     if (speechSynth.speaking) speechSynth.cancel();
 
     if (freq < 920) {
-        statusEl.innerText = "STATUS: PHANTOM STATION DETECTED";
+        statusEl.innerText = "STATUS: SIGNAL STATION DETECTED";
         startNumbersStation();
     } else if (freq > 1040) {
         statusEl.innerText = "STATUS: MUSIC BAND. LOAD A TRACK";

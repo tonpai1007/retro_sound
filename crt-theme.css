@@ -12,15 +12,17 @@
     --neon-magenta: #ff00ff;
     --neon-cyan: #00ffff;
     --screen-bg: #0a0500;
-    --bezel-bg: #1a1a1a;
-    --bezel-shadow: #111;
+    --bezel-bg: linear-gradient(145deg, #2a2a2a 0%, #1a1a1a 50%, #111 100%);
+    --bezel-shadow: #0a0a0a;
     --text-shadow: 0 0 5px var(--phosphor-dim);
+    --amber-glow: rgba(255, 176, 0, 0.15);
 }
 
 /* --- Accessibility: Reduced Effects --- */
 /* Applied via .reduced-effects class on <body> or <html> */
 .reduced-effects .crt-screen::before,
-.reduced-effects .crt-screen::after {
+.reduced-effects .crt-screen::after,
+.reduced-effects .crt-vignette {
     display: none !important;
 }
 .reduced-effects .crt-screen {
@@ -47,7 +49,8 @@
 /* --- Accessibility: Respect prefers-reduced-motion --- */
 @media (prefers-reduced-motion: reduce) {
     .crt-screen::before,
-    .crt-screen::after {
+    .crt-screen::after,
+    .crt-vignette {
         display: none !important;
     }
     .crt-screen {
@@ -102,8 +105,26 @@
     background: var(--bezel-bg);
     border-radius: 30px;
     padding: 50px;
-    box-shadow: 0 0 0 15px var(--bezel-shadow), 0 0 0 20px #2a2a2a, 0 0 80px rgba(0,0,0,0.8);
+    box-shadow: 
+        0 0 0 15px var(--bezel-shadow), 
+        0 0 0 20px #2a2a2a, 
+        0 0 80px rgba(0,0,0,0.8),
+        inset 0 2px 4px rgba(255,255,255,0.05),
+        inset 0 -2px 4px rgba(0,0,0,0.3);
     position: relative;
+}
+
+/* Ambient glow behind monitor */
+body::before {
+    content: "";
+    position: fixed;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    width: 120%;
+    height: 120%;
+    background: radial-gradient(ellipse at center, rgba(255, 176, 0, 0.03) 0%, transparent 70%);
+    pointer-events: none;
+    z-index: -1;
 }
 
 /* --- CRT Screen --- */
@@ -116,13 +137,27 @@
     overflow: hidden;
     position: relative;
     box-sizing: border-box;
-    box-shadow: inset 0 0 60px rgba(0,0,0,0.9);
+    box-shadow: 
+        inset 0 0 60px rgba(0,0,0,0.9),
+        0 0 40px var(--amber-glow),
+        0 0 80px rgba(255, 176, 0, 0.05);
     display: flex;
     flex-direction: column;
 }
 
-/* Scanlines */
+/* Subtle CRT curvature highlight */
 .crt-screen::before {
+    content: "";
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    border-radius: 22px;
+    box-shadow: inset 0 0 80px rgba(255, 176, 0, 0.02);
+    pointer-events: none;
+    z-index: 9;
+}
+
+/* Scanlines */
+.crt-screen::after {
     content: " ";
     display: block;
     position: absolute;
@@ -134,15 +169,14 @@
     pointer-events: none;
 }
 
-/* Vignette */
-.crt-screen::after {
-    content: " ";
-    display: block;
+/* Vignette overlay */
+.crt-vignette {
     position: absolute;
-    top: 0; left: 0; bottom: 0; right: 0;
-    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: radial-gradient(ellipse at center, rgba(0,0,0,0) 50%, rgba(0,0,0,0.75) 100%);
     z-index: 11;
     pointer-events: none;
+    border-radius: 22px;
 }
 
 /* Power LED */
@@ -154,7 +188,10 @@
     height: 10px;
     background: var(--phosphor);
     border-radius: 50%;
-    box-shadow: 0 0 15px var(--phosphor);
+    box-shadow: 
+        0 0 15px var(--phosphor),
+        0 0 30px var(--phosphor-glow),
+        inset 0 0 4px rgba(255,255,255,0.3);
     animation: ledFlicker 4s infinite;
 }
 
@@ -166,6 +203,9 @@
     color: #555;
     font-size: 18px;
     letter-spacing: 2px;
+    text-transform: uppercase;
+    font-weight: bold;
+    text-shadow: 0 1px 0 rgba(255,255,255,0.1);
 }
 
 /* --- Animations --- */
@@ -197,6 +237,11 @@
     10% { opacity: 0.8; }
     90% { opacity: 0.8; }
     100% { top: 100%; opacity: 0; }
+}
+
+@keyframes phosphorPulse {
+    0%, 100% { text-shadow: 0 0 5px var(--phosphor-dim); }
+    50% { text-shadow: 0 0 10px var(--phosphor-glow); }
 }
 
 /* --- Shared UI Components --- */
@@ -416,8 +461,8 @@ textarea {
 .share-row button { font-size: 14px; padding: 2px 8px; }
 
 /* ============================================================
-   DJ ENGINE v2 — Decks, Mixer, VU, Cues, Step Sequencer
-   ============================================================ */
+    DJ ENGINE v2 — Decks, Mixer, VU, Cues, Step Sequencer
+    ============================================================ */
 
 #dj-app {
     display: flex;
@@ -437,7 +482,10 @@ textarea {
     flex-direction: column;
     gap: 6px;
     min-width: 0;
-    box-shadow: inset 0 0 20px rgba(0,0,0,0.4);
+    box-shadow: 
+        inset 0 0 20px rgba(0,0,0,0.4),
+        0 0 10px rgba(255,176,0,0.05);
+    background: rgba(0,0,0,0.2);
 }
 .dj-deck-head {
     font-size: 19px;
@@ -446,6 +494,7 @@ textarea {
     border-bottom: 1px dashed var(--phosphor);
     cursor: pointer;
     user-select: none;
+    text-shadow: 0 0 8px var(--phosphor-glow);
 }
 .dj-master-tag {
     font-size: 12px;
@@ -484,6 +533,12 @@ textarea {
     white-space: nowrap;
 }
 .dj-mini:hover { background: var(--phosphor); color: #000; }
+.dj-filter-btn {
+    font-size: 11px;
+    padding: 2px 4px;
+    min-width: 28px;
+    text-align: center;
+}
 .dj-title {
     font-size: 15px;
     text-align: center;
@@ -501,6 +556,33 @@ textarea {
     display: block;
     cursor: crosshair;
     touch-action: none;
+    box-shadow: 0 0 8px rgba(255,176,0,0.15);
+}
+.dj-spectrum {
+    width: 100%;
+    height: 48px;
+    background: #000;
+    border: 1px solid #222;
+    border-bottom: 1px solid #444;
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+}
+.dj-osc {
+    width: 100%;
+    height: 48px;
+    background: #000;
+    border: 1px solid #222;
+    display: block;
+    cursor: crosshair;
+    touch-action: none;
+    box-shadow: 0 0 6px rgba(0,0,0,0.6);
+}
+.dj-viz-row {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 .dj-time {
     font-size: 21px;
@@ -664,3 +746,86 @@ textarea {
 }
 .dj-cell.on { background: var(--neon-green); box-shadow: 0 0 8px var(--neon-green); }
 .dj-cell.flash { background: #ffffff; }
+
+.dj-fx-strip {
+    border-top: 1px dashed var(--neon-cyan);
+    border-bottom: 1px dashed var(--neon-magenta);
+    padding: 4px 0;
+    background: rgba(0, 255, 255, 0.02);
+}
+.dj-fx-strip .dj-knob {
+    color: #aaa;
+}
+.dj-fx-strip .dj-knob input[type="range"] {
+    accent-color: var(--neon-cyan);
+}
+
+.dj-select {
+    background: #000;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    padding: 2px;
+    cursor: pointer;
+    outline: none;
+}
+.dj-delay-sync {
+    font-size: 11px;
+    padding: 2px 4px;
+    min-width: 36px;
+    text-align: center;
+}
+.dj-tap {
+    font-size: 12px;
+    padding: 2px 6px;
+    min-width: 36px;
+}
+.dj-preset-bar {
+    display: flex;
+    gap: 4px;
+    align-items: center;
+}
+.dj-preset-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 12px;
+    outline: none;
+    padding: 2px;
+    min-width: 60px;
+}
+.dj-preset-btn {
+    font-size: 11px;
+    padding: 2px 6px;
+    min-width: 36px;
+}
+.dj-filter-btn {
+    font-size: 11px;
+    padding: 2px 4px;
+    min-width: 28px;
+    text-align: center;
+}
+
+.dj-circular-viz {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-top: 6px;
+    border: 1px solid #333;
+    background: #000;
+    box-shadow: inset 0 0 15px rgba(0,0,0,0.8), 0 0 10px rgba(0,255,255,0.1);
+    border-radius: 50%;
+    width: 160px;
+    height: 160px;
+    align-self: center;
+    overflow: hidden;
+}
+.dj-circular-viz canvas {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}

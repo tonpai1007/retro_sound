@@ -3,90 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PHANTOM OS — Retro Computing Suite</title>
+    <title>CRT SIGNAL — Retro Computing Suite</title>
     <link rel="stylesheet" href="crt-theme.css">
+    <link rel="stylesheet" href="assets/css/os.css">
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
-    <style>
-        * { box-sizing: border-box; }
-        body {
-            background-color: #050505;
-            font-family: 'VT323', monospace;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            margin: 0;
-            overflow: auto;
-        }
-        .crt-monitor {
-            width: 1100px;
-            height: 850px;
-            max-width: 98%;
-            min-height: 850px;
-        }
-        .crt-screen {
-            animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s;
-            padding: 15px;
-        }
-        .app-view { display: none; flex-direction: column; height: 100%; }
-        .app-view.active { display: flex; }
-
-        /* Top Navigation */
-        .os-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            border-bottom: 2px solid var(--phosphor);
-            padding-bottom: 8px;
-            margin-bottom: 10px;
-            text-shadow: 0 0 8px var(--phosphor-glow);
-            flex-shrink: 0;
-        }
-        .os-title { font-size: 22px; }
-        .os-nav { display: flex; gap: 8px; flex-wrap: wrap; }
-        .os-nav-btn {
-            background: transparent;
-            border: 1px solid var(--phosphor);
-            color: var(--phosphor);
-            padding: 3px 10px;
-            font-family: 'VT323', monospace;
-            font-size: 16px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.15s;
-        }
-        .os-nav-btn:hover { background: var(--phosphor); color: #000; }
-        .os-nav-btn.active { background: var(--phosphor); color: #000; box-shadow: 0 0 10px var(--phosphor-glow); }
-
-        /* Reduce Effects Toggle */
-        .effects-toggle {
-            background: transparent;
-            border: 1px solid var(--neon-green);
-            color: var(--neon-green);
-            padding: 3px 10px;
-            font-family: 'VT323', monospace;
-            font-size: 14px;
-            cursor: pointer;
-            text-transform: uppercase;
-            transition: 0.15s;
-            white-space: nowrap;
-        }
-        .effects-toggle:hover { background: var(--neon-green); color: #000; }
-        .effects-toggle[aria-pressed="true"] { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
-
-        /* Boot Screen */
-        #boot-screen {
-            position: absolute;
-            top: 0; left: 0; right: 0; bottom: 0;
-            background: var(--screen-bg);
-            z-index: 20;
-            padding: 25px;
-            font-size: 18px;
-            line-height: 1.5;
-            display: none;
-        }
-        #boot-screen.open { display: block; }
-    </style>
 </head>
 <body>
     <!-- Skip link for keyboard users -->
@@ -96,22 +16,32 @@
         <div class="crt-screen">
             <!-- Boot Overlay -->
             <div id="boot-screen"></div>
+            <div class="crt-vignette" aria-hidden="true"></div>
 
             <!-- Main OS Shell -->
             <div class="os-header">
-                <div class="os-title">▓▒░ PHANTOM_OS v1.0 ░▒▓</div>
+                <div class="os-title text-lg">▓▒░ CRT_SIGNAL <span class="text-sm" style="opacity:0.6;">v1.0</span> ░▒▓</div>
                 <div class="os-nav" id="main-nav" role="tablist" aria-label="Application navigation">
-                    <button class="os-nav-btn" role="tab" data-app="retro-crt" onclick="showApp('retro-crt')" aria-selected="true">RETRO CRT</button>
-                    <button class="os-nav-btn" role="tab" data-app="retro-v2" onclick="showApp('retro-v2')" aria-selected="false">AMBER</button>
-                    <button class="os-nav-btn" role="tab" data-app="retro-yt" onclick="showApp('retro-yt')" aria-selected="false">YT MUSIC</button>
-                    <button class="os-nav-btn" role="tab" data-app="phantom-v4" onclick="showApp('phantom-v4')" aria-selected="false">PHANTOM v4</button>
-                    <button class="os-nav-btn" role="tab" data-app="phantom-v5" onclick="showApp('phantom-v5')" aria-selected="false">LRC SYNC</button>
-                    <button class="os-nav-btn" role="tab" data-app="dos-edit" onclick="showApp('dos-edit')" aria-selected="false">DOS EDIT</button>
-                    <button class="os-nav-btn" role="tab" data-app="dj-mixer" onclick="showApp('dj-mixer')" aria-selected="false">DJ MIXER</button>
+                    <div class="os-nav-group">
+                        <button class="os-nav-btn" role="tab" data-app="retro-crt" onclick="showApp('retro-crt')" aria-selected="true" style="font-size:15px;">RETRO CRT</button>
+                        <button class="os-nav-btn" role="tab" data-app="retro-v2" onclick="showApp('retro-v2')" aria-selected="false" style="font-size:15px;">AMBER</button>
+                        <button class="os-nav-btn" role="tab" data-app="retro-yt" onclick="showApp('retro-yt')" aria-selected="false" style="font-size:15px;">YT MUSIC</button>
+                    </div>
+                    <div class="os-nav-sep" aria-hidden="true"></div>
+                    <div class="os-nav-group">
+                        <button class="os-nav-btn" role="tab" data-app="signal-v4" onclick="showApp('signal-v4')" aria-selected="false" style="font-size:15px;">SIGNAL v4</button>
+                        <button class="os-nav-btn" role="tab" data-app="signal-v5" onclick="showApp('signal-v5')" aria-selected="false" style="font-size:15px;">LRC SYNC</button>
+                    </div>
+                    <div class="os-nav-sep" aria-hidden="true"></div>
+                    <div class="os-nav-group">
+                        <button class="os-nav-btn" role="tab" data-app="dos-edit" onclick="showApp('dos-edit')" aria-selected="false" style="font-size:15px;">DOS EDIT</button>
+                        <button class="os-nav-btn" role="tab" data-app="dj-mixer" onclick="showApp('dj-mixer')" aria-selected="false" style="font-size:15px;">DJ MIXER</button>
+                        <button class="os-nav-btn" role="tab" data-app="tui" onclick="showApp('tui')" aria-selected="false" style="font-size:15px;">CRT TERMINAL</button>
+                    </div>
                 </div>
                 <div style="display:flex; gap:8px; align-items:center;">
                     <button class="effects-toggle" id="effects-toggle" aria-pressed="false" title="Toggle reduced motion effects">⚡ FX</button>
-                    <div id="clock" style="font-size:18px;" aria-live="polite">00:00:00</div>
+                    <div id="clock" class="text-sm" aria-live="polite">00:00:00</div>
                 </div>
             </div>
 
@@ -120,103 +50,103 @@
             <!-- ==================== APP: RETRO CRT v1 ==================== -->
             <section id="app-retro-crt" class="app-view active">
                 <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
-                    <div style="width:180px; display:flex; flex-direction:column; align-items:center; border-right:1px dashed var(--phosphor); padding-right:10px;">
-                        <pre id="cassette" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; color:var(--phosphor); text-shadow:0 0 5px var(--phosphor-glow);">
+                    <div class="app-side-panel app-side-panel--narrow">
+                        <pre id="cassette" class="cassette-frame">
   ┌───────────────┐
   │  (O)=====(O)  │
   │   ▓▓▓▓▓▓▓▓▓   │
   └───────────────┘
                         </pre>
-                        <div style="margin-top:10px; font-size:18px;">SIDE A</div>
+                        <div class="text-md mt-1 section-label">SIDE A</div>
                     </div>
-                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="crt1-lyrics">> AWAITING INPUT...</div>
+                    <div class="lyrics-panel lyrics-panel--v1" id="crt1-lyrics">> AWAITING INPUT...</div>
                 </div>
             </section>
 
             <!-- ==================== APP: RETRO v2 ==================== -->
             <section id="app-retro-v2" class="app-view">
                 <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
-                    <div style="width:250px; display:flex; flex-direction:column; border-right:1px dashed var(--phosphor); padding-right:15px;">
-                        <div id="spectrum" style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; font-size:22px; line-height:1; text-shadow:0 0 10px var(--phosphor-glow); margin-bottom:10px;"></div>
-                        <div style="border:1px solid var(--phosphor); padding:10px; text-align:center; font-size:14px;">
-                            <pre id="cassette-v2" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; margin-bottom:5px;">
+                    <div class="app-side-panel app-side-panel--wide">
+                        <div id="spectrum" class="spectrum-column"></div>
+                        <div class="cassette-frame">
+                            <pre id="cassette-v2">
   ┌───────────────┐
   │  (O)=====(O)  │
   │   ▓▓▓▓▓▓▓▓▓   │
   └───────────────┘
                             </pre>
-                            <div id="tape-label-v2">NO TAPE LOADED</div>
+                            <div id="tape-label-v2" class="cassette-label text-sm">NO TAPE LOADED</div>
                         </div>
                     </div>
-                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="v2-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
+                    <div class="lyrics-panel" id="v2-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
                 </div>
             </section>
 
             <!-- ==================== APP: YT MUSIC v3 ==================== -->
             <section id="app-retro-yt" class="app-view">
                 <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
-                    <div style="width:250px; display:flex; flex-direction:column; border-right:1px dashed var(--phosphor); padding-right:15px;">
-                        <div id="spectrum-yt" style="flex-grow:1; display:flex; align-items:flex-end; justify-content:center; gap:2px; font-size:22px; line-height:1; text-shadow:0 0 10px var(--phosphor-glow); margin-bottom:10px;"></div>
-                        <div style="border:1px solid var(--phosphor); padding:10px; text-align:center; font-size:14px;">
-                            <pre id="cassette-yt" style="font-size:16px; text-align:center; white-space:pre; line-height:1.1; margin-bottom:5px;">
+                    <div class="app-side-panel app-side-panel--wide">
+                        <div id="spectrum-yt" class="spectrum-column"></div>
+                        <div class="cassette-frame">
+                            <pre id="cassette-yt">
   ┌───────────────┐
   │  (O)=====(O)  │
   │   ▓▓▓▓▓▓▓▓▓   │
   └───────────────┘
                             </pre>
-                            <div id="tape-label-yt">NO TAPE LOADED</div>
+                            <div id="tape-label-yt" class="cassette-label text-sm">NO TAPE LOADED</div>
                         </div>
                     </div>
-                    <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.3;" id="yt-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
+                    <div class="lyrics-panel" id="yt-lyrics">> SYSTEM READY...<br>> AWAITING COMMAND</div>
                 </div>
             </section>
 
-            <!-- ==================== APP: PHANTOM v4 ==================== -->
-            <section id="app-phantom-v4" class="app-view">
+            <!-- ==================== APP: SIGNAL v4 ==================== -->
+            <section id="app-signal-v4" class="app-view">
                 <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
-                    <div style="width:40%; display:flex; flex-direction:column; gap:15px; border-right:1px dashed var(--phosphor); padding-right:15px;">
-                        <div style="flex-grow:1; border:2px solid var(--phosphor); background:#000; box-shadow:inset 0 0 20px rgba(255,176,0,0.1); position:relative; overflow:hidden; min-height:120px;">
-                            <canvas id="oscilloscope" style="width:100%; height:100%; display:block;"></canvas>
+                    <div class="app-side-panel app-side-panel--v4">
+                        <div class="oscilloscope-container">
+                            <canvas id="oscilloscope"></canvas>
                         </div>
-                        <div style="border:2px solid var(--phosphor); padding:10px; text-align:center;">
-                            <div id="dial-display" style="font-size:32px; color:var(--neon-green); text-shadow:0 0 10px var(--neon-green); margin-bottom:10px;">88.0 FM</div>
-                            <input type="range" id="tuner" min="880" max="1080" value="880" oninput="tuneRadioV4()" style="width:100%; cursor:pointer; accent-color:var(--phosphor);">
-                            <div style="font-size:14px; color:#888; margin-top:5px;">TUNE DOWN FOR NUMBERS STATION</div>
+                        <div class="tuner-box">
+                            <div id="dial-display" class="dial-display">88.0 FM</div>
+                            <input type="range" id="tuner" min="880" max="1080" value="880" oninput="tuneRadioV4()" class="tuner-input" aria-label="Radio tuner frequency">
+                            <div class="tuner-hint text-xs">TUNE DOWN FOR NUMBERS STATION</div>
                         </div>
                     </div>
                     <div style="flex-grow:1; display:flex; flex-direction:column;">
-                        <div style="flex-grow:1; overflow-y:auto; font-size:24px; line-height:1.4; padding:10px; border:1px solid #333;" id="v4-lyrics">> AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>> TUNE BELOW 92.0 FOR PHANTOM STATION</div>
-                        <div id="v4-status" style="margin-top:10px; font-size:18px; color:var(--neon-green); text-shadow:0 0 5px var(--neon-green);">STATUS: STANDBY</div>
+                         <div class="lyrics-panel lyrics-panel--v4 static-noise" id="v4-lyrics"><span class="text-sm" style="color:#666;">> AWAITING SIGNAL...</span><br><span class="text-sm" style="color:#666;">> TUNE RADIO ABOVE 104.0 FOR MUSIC</span><br><span class="text-sm" style="color:#666;">> TUNE BELOW 92.0 FOR SIGNAL STATION</span><span class="crt-cursor"></span></div>
+                        <div id="v4-status" class="status-text">STATUS: STANDBY</div>
                     </div>
                 </div>
             </section>
 
             <!-- ==================== APP: LRC SYNC v5 ==================== -->
-            <section id="app-phantom-v5" class="app-view">
+            <section id="app-signal-v5" class="app-view">
                 <div style="display:flex; gap:20px; flex-grow:1; min-height:0;">
-                    <div style="width:40%; display:flex; flex-direction:column; gap:15px; border-right:1px dashed var(--phosphor); padding-right:15px;">
-                        <div style="flex-grow:1; border:2px solid var(--phosphor); background:#000; box-shadow:inset 0 0 20px rgba(255,176,0,0.1); position:relative; overflow:hidden; min-height:120px;">
-                            <canvas id="oscilloscope-v5" style="width:100%; height:100%; display:block;"></canvas>
+                    <div class="app-side-panel app-side-panel--v4">
+                        <div class="oscilloscope-container">
+                            <canvas id="oscilloscope-v5"></canvas>
                         </div>
-                        <div style="border:2px solid var(--phosphor); padding:10px; text-align:center;">
-                            <div id="dial-display-v5" style="font-size:32px; color:var(--neon-green); text-shadow:0 0 10px var(--neon-green); margin-bottom:10px;">88.0 FM</div>
-                            <input type="range" id="tuner-v5" min="880" max="1080" value="880" oninput="tuneRadioV5()" style="width:100%; cursor:pointer; accent-color:var(--phosphor);">
-                            <div style="font-size:14px; color:#888; margin-top:5px;">TUNE DOWN FOR NUMBERS STATION</div>
+                        <div class="tuner-box">
+                            <div id="dial-display-v5" class="dial-display">88.0 FM</div>
+                            <input type="range" id="tuner-v5" min="880" max="1080" value="880" oninput="tuneRadioV5()" class="tuner-input" aria-label="Radio tuner frequency">
+                            <div class="tuner-hint text-xs">TUNE DOWN FOR NUMBERS STATION</div>
                         </div>
                     </div>
                     <div style="flex-grow:1; display:flex; flex-direction:column; min-width:0;">
-                        <div style="flex-grow:1; overflow-y:auto; font-size:22px; line-height:1.4; padding:8px; border:1px solid #333;" id="v5-lyrics">> AWAITING SIGNAL...<br>> TUNE RADIO ABOVE 104.0 FOR MUSIC<br>> TUNE BELOW 92.0 FOR PHANTOM STATION<br>> PRESS LRC TO PASTE TIMESTAMPED LYRICS</div>
-                        <div style="width:100%; height:4px; background:#222; margin-top:6px; border-radius:2px; overflow:hidden;">
-                            <div id="progress-fill" style="height:100%; background:var(--neon-green); width:0%; box-shadow:0 0 10px var(--neon-green); transition:width 0.1s linear;"></div>
+                         <div class="lyrics-panel static-noise" id="v5-lyrics"><span class="text-sm" style="color:#666;">> AWAITING SIGNAL...</span><br><span class="text-sm" style="color:#666;">> TUNE RADIO ABOVE 104.0 FOR MUSIC</span><br><span class="text-sm" style="color:#666;">> TUNE BELOW 92.0 FOR SIGNAL STATION</span><br><span class="text-sm" style="color:#666;">> PRESS LRC TO PASTE TIMESTAMPED LYRICS</span><span class="crt-cursor"></span></div>
+                        <div class="progress-track">
+                            <div id="progress-fill" class="progress-fill"></div>
                         </div>
-                        <div style="margin-top:8px; font-size:16px; color:var(--neon-green); text-shadow:0 0 5px var(--neon-green); display:flex; justify-content:space-between;">
+                        <div class="status-row">
                             <span id="v5-status">STATUS: STANDBY</span>
                             <span id="time-display">00:00 / 00:00</span>
                         </div>
-                        <div style="display:flex; gap:4px; margin-top:6px; flex-wrap:wrap;">
-                            <button class="deck-btn" onclick="exportLRC()">EXPORT</button>
-                            <button class="deck-btn" onclick="copyLRC()">COPY</button>
-                            <button class="deck-btn" onclick="shareURL()">SHARE</button>
+                        <div class="btn-row">
+                            <button class="btn" onclick="exportLRC()">EXPORT</button>
+                            <button class="btn" onclick="copyLRC()">COPY</button>
+                            <button class="btn" onclick="shareURL()">SHARE</button>
                         </div>
                     </div>
                 </div>
@@ -225,17 +155,36 @@
             <!-- ==================== APP: DOS EDIT ==================== -->
             <section id="app-dos-edit" class="app-view">
                 <div style="display:flex; flex-direction:column; height:100%;">
-                    <div style="background:var(--phosphor); color:#000; padding:2px 10px; font-size:22px; font-weight:bold; display:flex; justify-content:space-between; flex-shrink:0;">
+                    <div class="dos-titlebar">
                         <span id="dos-filename">UNTITLED.BAT</span>
                         <span id="dos-save">NEW</span>
                     </div>
-                    <div style="flex-grow:1; position:relative; overflow:hidden;">
-                        <pre id="dos-output" style="position:absolute; top:0; left:0; width:100%; height:100%; margin:0; padding:10px 15px; font-family:'VT323',monospace; font-size:22px; line-height:1.3; color:var(--phosphor); text-shadow:0 0 5px var(--phosphor-dim); white-space:pre-wrap; word-wrap:break-word; pointer-events:none; overflow:hidden; z-index:1;"></pre>
-                        <textarea id="dos-input" spellcheck="false" style="position:absolute; top:0; left:0; width:100%; height:100%; background:transparent; border:none; outline:none; resize:none; color:transparent; caret-color:var(--phosphor); font-family:'VT323',monospace; font-size:22px; line-height:1.3; padding:10px 15px; box-sizing:border-box; z-index:2; white-space:pre-wrap; word-wrap:break-word; overflow:auto;"></textarea>
+                    <div class="dos-editor-wrap">
+                        <pre id="dos-output" class="dos-output"></pre>
+                        <textarea id="dos-input" spellcheck="false" aria-label="DOS editor text input" class="dos-input"></textarea>
                     </div>
-                    <div style="background:#000; color:var(--phosphor); padding:2px 10px; font-size:18px; border-top:1px solid #333; display:flex; justify-content:space-between; flex-shrink:0;">
+                    <div class="dos-statusbar">
                         <span id="dos-line">Ln 1, Col 1</span>
                         <span>UTF-8 | DOS v2.0</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ==================== APP: TUI SHELL ==================== -->
+            <section id="app-tui" class="app-view">
+                <div class="tui-window" id="tui-window">
+                    <div class="tui-titlebar">
+                        <span>■ □ ▲ CRT SIGNAL TUI v1.0 — ttys0</span>
+                        <span>80×25 · VT100</span>
+                    </div>
+                    <div id="tui-output" aria-live="polite"></div>
+                    <div class="tui-inputline">
+                        <span class="tui-prompt">C:\CRT_SIGNAL></span>
+                        <input id="tui-input" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" aria-label="TUI command input">
+                    </div>
+                    <div class="tui-statusbar">
+                        <span>F1 HELP · ↑↓ HISTORY · TAB COMPLETE · CTRL+C ABORT</span>
+                        <span id="tui-status">IDLE</span>
                     </div>
                 </div>
             </section>
@@ -254,7 +203,7 @@
 
     <script>
     // ============================================================
-    //  PHANTOM OS — Single Page Application Router + Shared Engine
+    //  CRT SIGNAL — Single Page Application Router + Shared Engine
     // ============================================================
 
     let currentApp = 'retro-crt';
@@ -273,15 +222,23 @@
         if (prevApp === 'retro-v2') unmountRetroV2();
         if (prevApp === 'dos-edit') unmountDosEdit();
         if (prevApp === 'dj-mixer') unmountDJMixer();
+        if (prevApp === 'tui' && typeof unmountTui === 'function') unmountTui();
+        if (prevApp === 'signal-v4') stopOsc4();
+        if (prevApp === 'signal-v5') stopOsc5();
         if (name === 'retro-crt') mountRetroCrt();
         if (name === 'retro-v2') mountRetroV2();
         if (name === 'dos-edit') mountDosEdit();
         if (name === 'dj-mixer') mountDJMixer();
+        if (name === 'tui' && typeof mountTui === 'function') mountTui();
+        if (name === 'signal-v4') startOsc4();
+        if (name === 'signal-v5') startOsc5();
         if (name === 'dos-edit') {
             const input = document.getElementById('dos-input');
             if (input) input.focus();
         }
     }
+    // Expose for module scripts and inline handlers
+    window.showApp = showApp;
 
     // Init nav and mount default app
     showApp('retro-crt');
@@ -291,10 +248,63 @@
     function boot() {
         const screen = document.getElementById('boot-screen');
         screen.classList.add('open');
-        screen.innerHTML = 'AMIBIOS (C) 1985-2024 AMERICAN MEGATRENDS INC.<br>CPU: ZILOG Z80 @ 3.58 MHZ<br>MEMORY TEST: 65536 KB OK<br><br>LOADING PHANTOM_OS KERNEL... [OK]<br>MOUNTING /DEV/CRT... [OK]<br>INITIALIZING AUDIO_DRIVER.SYS... [OK]<br><br>SYSTEM READY.<br><br>C:\\>';
-        setTimeout(() => screen.classList.remove('open'), 2500);
+        const lines = [
+            'AMIBIOS (C) 1985-2024 AMERICAN MEGATRENDS INC.',
+            'CPU: ZILOG Z80 @ 3.58 MHZ',
+            'MEMORY TEST: 65536 KB OK',
+            '',
+            'LOADING CRT_SIGNAL KERNEL... [OK]',
+            'MOUNTING /DEV/CRT... [OK]',
+            'INITIALIZING AUDIO_DRIVER.SYS... [OK]',
+            '',
+            'SYSTEM READY.',
+            '',
+            'C:\\>'
+        ];
+        let i = 0;
+        screen.innerHTML = '';
+        function typeLine() {
+            if (i >= lines.length) {
+                setTimeout(() => screen.classList.remove('open'), 600);
+                return;
+            }
+            const line = lines[i];
+            const div = document.createElement('div');
+            div.style.marginBottom = '4px';
+            screen.appendChild(div);
+            let j = 0;
+            const span = document.createElement('span');
+            div.appendChild(span);
+            const cursor = document.createElement('span');
+            cursor.className = 'crt-cursor';
+            cursor.style.width = '8px';
+            cursor.style.marginLeft = '2px';
+            div.appendChild(cursor);
+            function typeChar() {
+                if (j < line.length) {
+                    span.textContent += line[j];
+                    j++;
+                    setTimeout(typeChar, 18 + Math.random() * 22);
+                } else {
+                    cursor.remove();
+                    i++;
+                    setTimeout(typeLine, 120);
+                }
+            }
+            typeChar();
+        }
+        typeLine();
     }
     window.onload = boot;
+
+    // Deep-link support: open straight into an app via URL hash (e.g. #tui)
+    if (window.location.hash) {
+        const hashApp = window.location.hash.substring(1);
+        const knownApps = ['retro-crt','retro-v2','retro-yt','signal-v4','signal-v5','dos-edit','dj-mixer','tui'];
+        if (knownApps.indexOf(hashApp) !== -1 && hashApp !== 'retro-crt') {
+            showApp(hashApp);
+        }
+    }
 
     // Clock
     function updateClock() {
@@ -462,9 +472,9 @@
     document.getElementById('yt-lyrics').addEventListener('click', startYT3);
 
     // ============================================================
-    //  APP 4: PHANTOM v4
+    //  APP 4: SIGNAL v4
     // ============================================================
-    let noiseSource4 = null, audioCtx4 = null, analyser4 = null;
+    let noiseSource4 = null, audioCtx4 = null, analyser4 = null, raf4 = null, raf5 = null;
     function initAudio4() {
         if (!audioCtx4) {
             audioCtx4 = new (window.AudioContext || window.webkitAudioContext)();
@@ -494,16 +504,24 @@
             x += sliceWidth;
         }
         ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
-        requestAnimationFrame(drawOsc4);
+        if (currentApp === "signal-v4") {
+            raf4 = requestAnimationFrame(drawOsc4);
+        }
     }
-    drawOsc4();
+    function startOsc4() {
+        if (!raf4) raf4 = requestAnimationFrame(drawOsc4);
+    }
+    function stopOsc4() {
+        if (raf4) { cancelAnimationFrame(raf4); raf4 = null; }
+    }
+    startOsc4();
     function tuneRadioV4() {
         const freq = parseInt(document.getElementById('tuner').value);
         document.getElementById('dial-display').innerText = (freq / 10).toFixed(1) + ' FM';
         initAudio4();
         if (noiseSource4) { try { noiseSource4.stop(); } catch(e){} noiseSource4 = null; }
         if (freq < 920) {
-            document.getElementById('v4-status').innerText = 'STATUS: PHANTOM STATION DETECTED';
+            document.getElementById('v4-status').innerText = 'STATUS: SIGNAL STATION DETECTED';
             const bufferSize = audioCtx4.sampleRate * 2;
             const buffer = audioCtx4.createBuffer(1, bufferSize, audioCtx4.sampleRate);
             const data = buffer.getChannelData(0);
@@ -555,16 +573,24 @@
             x += sliceWidth;
         }
         ctx.lineTo(canvas.width, canvas.height / 2); ctx.stroke();
-        requestAnimationFrame(drawOsc5);
+        if (currentApp === "signal-v5") {
+            raf5 = requestAnimationFrame(drawOsc5);
+        }
     }
-    drawOsc5();
+    function startOsc5() {
+        if (!raf5) raf5 = requestAnimationFrame(drawOsc5);
+    }
+    function stopOsc5() {
+        if (raf5) { cancelAnimationFrame(raf5); raf5 = null; }
+    }
+    startOsc5();
     function tuneRadioV5() {
         const freq = parseInt(document.getElementById('tuner-v5').value);
         document.getElementById('dial-display-v5').innerText = (freq / 10).toFixed(1) + ' FM';
         initAudio5();
         if (noiseSource5) { try { noiseSource5.stop(); } catch(e){} noiseSource5 = null; }
         if (freq < 920) {
-            document.getElementById('v5-status').innerText = 'STATUS: PHANTOM STATION';
+            document.getElementById('v5-status').innerText = 'STATUS: SIGNAL STATION';
             const bufferSize = audioCtx5.sampleRate * 2;
             const buffer = audioCtx5.createBuffer(1, bufferSize, audioCtx5.sampleRate);
             const data = buffer.getChannelData(0);
@@ -634,7 +660,7 @@
     dosInput.addEventListener('scroll', () => { dosOutput.scrollTop = dosInput.scrollTop; dosOutput.scrollLeft = dosInput.scrollLeft; });
     window.addEventListener('load', () => {
         const saved = localStorage.getItem('msdos_edit_file');
-        dosInput.value = saved || '// WELCOME TO DOS EDIT v2 (SPA)\n// Click here and start typing\n\nfunction init() {\n  console.log("Phantom OS loaded");\n}\n';
+        dosInput.value = saved || '// WELCOME TO DOS EDIT v2 (SPA)\n// Click here and start typing\n\nfunction init() {\n  console.log("CRT SIGNAL loaded");\n}\n';
         syncDos();
     });
 
@@ -644,6 +670,15 @@
     djModule.src = 'assets/js/dj-engine.js';
     djModule.async = false;
     document.head.appendChild(djModule);
+
+    // Load the TUI shell engine; mount it if the user already switched to it
+    const tuiModule = document.createElement('script');
+    tuiModule.src = 'assets/js/tui.js';
+    tuiModule.async = false;
+    tuiModule.onload = function () {
+        if (currentApp === 'tui' && typeof mountTui === 'function') mountTui();
+    };
+    document.head.appendChild(tuiModule);
 
     // Aliases for inline onclick handlers (DJ aliases handled by dj-engine.js module)
     function togglePlay(deck) { if (typeof togglePlay6 === 'function') togglePlay6(deck); }

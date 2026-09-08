@@ -1,0 +1,639 @@
+/* ============================================================
+ *  CRT SIGNAL OS — Launcher styles (extracted from index.html
+ *  so that `vite build` can process the stylesheet properly)
+ * ============================================================ */
+
+* { box-sizing: border-box; }
+body {
+    background-color: #050505;
+    font-family: 'VT323', monospace;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    overflow: auto;
+}
+.crt-monitor {
+    width: 1100px;
+    height: 850px;
+    max-width: 98%;
+    min-height: 850px;
+}
+.crt-screen {
+    animation: powerOn 1.5s ease-out, screenFlicker 0.1s infinite 1.5s;
+    padding: 15px;
+}
+.app-view { display: none; flex-direction: column; height: 100%; }
+.app-view.active { display: flex; }
+
+/* Top Navigation */
+.os-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid var(--phosphor);
+    padding-bottom: 6px;
+    margin-bottom: 8px;
+    text-shadow: 0 0 6px var(--phosphor-glow);
+    flex-shrink: 0;
+    gap: 12px;
+}
+.os-title { font-size: 22px; letter-spacing: 1px; }
+.os-nav { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.os-nav-btn {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    padding: 2px 10px;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.15s;
+    line-height: 1.2;
+}
+.os-nav-btn:hover { background: var(--phosphor); color: #000; }
+.os-nav-btn.active { background: var(--phosphor); color: #000; box-shadow: 0 0 10px var(--phosphor-glow); border-bottom: 2px solid var(--neon-green); }
+
+/* Reduce Effects Toggle */
+.effects-toggle {
+    background: transparent;
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    padding: 3px 10px;
+    font-family: 'VT323', monospace;
+    font-size: 14px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.15s;
+    white-space: nowrap;
+}
+.effects-toggle:hover { background: var(--neon-green); color: #000; }
+.effects-toggle[aria-pressed="true"] { background: var(--neon-green); color: #000; box-shadow: 0 0 10px var(--neon-green); }
+
+/* ============================================================
+   UNIFIED BUTTON SYSTEM
+   ============================================================ */
+.btn {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    padding: 2px 12px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none;
+    line-height: 1.2;
+}
+.btn:hover { background: var(--phosphor); color: #000; box-shadow: 0 0 12px var(--phosphor-glow); }
+.btn:active { transform: translateY(1px); }
+.btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.btn--sm { font-size: 13px; padding: 1px 8px; }
+.btn--ghost { border-color: var(--neon-green); color: var(--neon-green); }
+.btn--ghost:hover { background: var(--neon-green); color: #000; box-shadow: 0 0 12px var(--neon-green); }
+.btn--danger { border-color: #ff3333; color: #ff3333; }
+.btn--danger:hover { background: #ff3333; color: #000; }
+.btn--success { border-color: var(--neon-green); color: var(--neon-green); }
+.btn--success:hover { background: var(--neon-green); color: #000; }
+
+/* Backward-compat aliases for existing classes */
+.deck-btn, .dj-mini, .crt-btn {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    padding: 2px 12px;
+    font-family: 'VT323', monospace;
+    font-size: 16px;
+    cursor: pointer;
+    text-transform: uppercase;
+    transition: 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    text-decoration: none;
+    line-height: 1.2;
+}
+.deck-btn:hover, .dj-mini:hover, .crt-btn:hover { background: var(--phosphor); color: #000; box-shadow: 0 0 12px var(--phosphor-glow); }
+.dj-mini { font-size: 13px; padding: 1px 8px; }
+
+/* ============================================================
+   APP TRANSITIONS
+   ============================================================ */
+.app-view {
+    display: none;
+    flex-direction: column;
+    height: 100%;
+}
+.app-view.active {
+    display: flex;
+    animation: appFlicker 220ms ease-out;
+    box-shadow: inset 0 0 0 1px var(--phosphor), inset 6px 0 0 rgba(255, 176, 0, 0.06);
+    border-left: 1px solid rgba(255, 176, 0, 0.08);
+}
+@keyframes appFlicker {
+    0% { opacity: 0; transform: translateX(8px); }
+    40% { opacity: 0.6; transform: translateX(-2px); }
+    100% { opacity: 1; transform: translateX(0); }
+}
+
+/* ============================================================
+   LOADING / EMPTY STATES
+   ============================================================ */
+.crt-loading {
+    color: #ffff00;
+    text-shadow: 0 0 8px #ffff00;
+}
+.crt-cursor {
+    display: inline-block;
+    width: 10px;
+    height: 1.1em;
+    background: var(--phosphor);
+    vertical-align: text-bottom;
+    animation: blink 1s steps(2) infinite;
+    box-shadow: 0 0 10px var(--phosphor-glow);
+    margin-left: 2px;
+}
+.static-noise {
+    position: relative;
+}
+.static-noise::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255, 176, 0, 0.03) 2px,
+        rgba(255, 176, 0, 0.03) 4px
+    );
+    animation: noiseShift 0.5s steps(4) infinite;
+    pointer-events: none;
+    z-index: 2;
+}
+@keyframes noiseShift {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(4px); }
+}
+
+/* ============================================================
+   TYPOGRAPHY SCALING
+   ============================================================ */
+.text-xs { font-size: 13px; }
+.text-sm { font-size: 15px; }
+.text-md { font-size: 18px; }
+.text-lg { font-size: 22px; }
+.text-xl { font-size: 28px; }
+.text-2xl { font-size: 34px; }
+.mt-1 { margin-top: 6px; }
+.mt-2 { margin-top: 12px; }
+.mb-1 { margin-bottom: 6px; }
+.mb-2 { margin-bottom: 12px; }
+.p-1 { padding: 8px; }
+.p-2 { padding: 12px; }
+.gap-1 { gap: 8px; }
+.gap-2 { gap: 12px; }
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+.os-nav {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+}
+.os-nav-group {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+.os-nav-sep {
+    width: 1px;
+    height: 18px;
+    background: var(--phosphor);
+    opacity: 0.4;
+    margin: 0 4px;
+}
+.os-nav-btn.active {
+    background: var(--phosphor);
+    color: #000;
+    box-shadow: 0 0 10px var(--phosphor-glow);
+    border-bottom: 2px solid var(--neon-green);
+}
+.nav-overflow {
+    display: none;
+    position: relative;
+}
+.nav-overflow-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background: #000;
+    border: 1px solid var(--phosphor);
+    padding: 6px;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    z-index: 50;
+    min-width: 160px;
+    box-shadow: 0 0 20px rgba(255,176,0,0.2);
+}
+.nav-overflow.open .nav-overflow-menu { display: flex; }
+.nav-overflow-btn {
+    background: transparent;
+    border: 1px solid var(--phosphor);
+    color: var(--phosphor);
+    padding: 4px 10px;
+    font-family: 'VT323', monospace;
+    font-size: 15px;
+    cursor: pointer;
+    text-transform: uppercase;
+    text-align: left;
+    transition: 0.15s;
+}
+.nav-overflow-btn:hover { background: var(--phosphor); color: #000; }
+.nav-overflow-btn.active { background: var(--phosphor); color: #000; }
+@media (max-width: 860px) {
+    .os-nav { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 4px; }
+    .os-nav-group { flex-wrap: nowrap; }
+}
+
+/* Section labels */
+.section-label {
+    font-size: 13px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+    text-shadow: none;
+}
+
+/* ============================================================
+   TUI SHELL
+   ============================================================ */
+#app-tui { height: 100%; }
+.tui-window {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    border: 2px solid var(--phosphor);
+    background: #000;
+    box-shadow: 0 0 20px rgba(255,176,0,0.15), inset 0 0 40px rgba(255,176,0,0.05);
+}
+.tui-titlebar {
+    background: var(--phosphor);
+    color: #000;
+    padding: 2px 10px;
+    font-size: 20px;
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+    font-weight: bold;
+}
+#tui-output {
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 10px 14px;
+    font-size: 19px;
+    line-height: 1.3;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+.tui-line { min-height: 1em; }
+.tui-line.tui-cmd { color: var(--neon-green); }
+.tui-line.tui-err { color: #ff5555; text-shadow: 0 0 5px #ff5555; }
+.tui-line.tui-dim { color: #888; }
+.tui-amber { color: var(--phosphor); text-shadow: 0 0 6px var(--phosphor-glow); }
+.tui-green { color: var(--neon-green); text-shadow: 0 0 6px var(--neon-green); }
+.tui-dim { color: #888; }
+.tui-inputline {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 14px;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+}
+.tui-prompt { color: var(--neon-green); font-size: 19px; white-space: nowrap; text-shadow: 0 0 5px var(--neon-green); }
+#tui-input {
+    flex: 1;
+    background: transparent;
+    border: none;
+    outline: none;
+    color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 19px;
+    caret-color: var(--phosphor);
+    text-shadow: 0 0 5px var(--phosphor-dim);
+}
+.tui-statusbar {
+    display: flex;
+    justify-content: space-between;
+    padding: 2px 10px;
+    font-size: 15px;
+    color: #888;
+    border-top: 1px solid #333;
+    flex-shrink: 0;
+}
+#tui-status { color: var(--neon-green); text-shadow: 0 0 5px var(--neon-green); }
+
+/* Boot Screen */
+#boot-screen {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: var(--screen-bg);
+    z-index: 20;
+    padding: 25px;
+    font-size: 18px;
+    line-height: 1.5;
+    display: none;
+}
+#boot-screen.open { display: block; }
+
+/* ============================================================
+   APP LAYOUT UTILITIES — extracted from index.html inline styles
+   ============================================================ */
+
+/* Side panels used by v1/v2/v3/v4/v5 */
+.app-side-panel {
+    display: flex;
+    flex-direction: column;
+    border-right: 1px dashed var(--phosphor);
+    padding-right: 12px;
+    gap: 12px;
+}
+.app-side-panel--narrow {
+    width: 180px;
+    align-items: center;
+    padding-right: 10px;
+}
+.app-side-panel--wide {
+    width: 250px;
+}
+.app-side-panel--v4 {
+    width: 40%;
+}
+
+/* Cassette / tape ASCII art containers */
+.cassette-frame {
+    border: 1px solid var(--phosphor);
+    padding: 10px;
+    text-align: center;
+    font-size: 14px;
+}
+.cassette-frame pre {
+    font-size: 16px;
+    text-align: center;
+    white-space: pre;
+    line-height: 1.1;
+    margin: 0 0 5px 0;
+    color: var(--phosphor);
+    text-shadow: 0 0 5px var(--phosphor-glow);
+}
+.cassette-label {
+    font-size: 14px;
+    color: #888;
+    min-height: 17px;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+/* Spectrum analyzer column */
+.spectrum-column {
+    flex-grow: 1;
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 2px;
+    font-size: 22px;
+    line-height: 1;
+    text-shadow: 0 0 10px var(--phosphor-glow);
+    margin-bottom: 10px;
+}
+
+/* Lyrics / output panels */
+.lyrics-panel {
+    flex-grow: 1;
+    overflow-y: auto;
+    font-size: 20px;
+    line-height: 1.35;
+    padding: 6px;
+    border: 1px solid #333;
+    position: relative;
+}
+.lyrics-panel--v1 {
+    font-size: 20px;
+    line-height: 1.35;
+}
+.lyrics-panel--v4 {
+    font-size: 20px;
+    line-height: 1.4;
+    padding: 8px;
+}
+
+/* Empty / waiting states */
+.empty-state {
+    color: #555;
+    font-size: 15px;
+    line-height: 1.5;
+}
+.empty-state::before {
+    content: ">";
+    color: var(--phosphor);
+    opacity: 0.4;
+    margin-right: 6px;
+}
+
+/* Signal / tuner specific */
+.oscilloscope-container {
+    flex-grow: 1;
+    border: 2px solid var(--phosphor);
+    background: #000;
+    box-shadow: inset 0 0 20px rgba(255,176,0,0.1);
+    position: relative;
+    overflow: hidden;
+    min-height: 120px;
+}
+.oscilloscope-container canvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+}
+.tuner-box {
+    border: 2px solid var(--phosphor);
+    padding: 10px;
+    text-align: center;
+}
+.dial-display {
+    font-size: 32px;
+    color: var(--neon-green);
+    text-shadow: 0 0 10px var(--neon-green);
+    margin-bottom: 10px;
+}
+.tuner-input {
+    width: 100%;
+    cursor: pointer;
+    accent-color: var(--phosphor);
+}
+.tuner-hint {
+    font-size: 14px;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* Status and progress */
+.status-text {
+    font-size: 18px;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+}
+.progress-track {
+    width: 100%;
+    height: 4px;
+    background: #222;
+    margin-top: 6px;
+    border-radius: 2px;
+    overflow: hidden;
+}
+.progress-fill {
+    height: 100%;
+    background: var(--neon-green);
+    width: 0%;
+    box-shadow: 0 0 10px var(--neon-green);
+    transition: width 0.1s linear;
+}
+.status-row {
+    margin-top: 8px;
+    font-size: 16px;
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    display: flex;
+    justify-content: space-between;
+}
+.btn-row {
+    display: flex;
+    gap: 4px;
+    margin-top: 6px;
+    flex-wrap: wrap;
+}
+
+/* DOS Edit layout */
+.dos-titlebar {
+    background: var(--phosphor);
+    color: #000;
+    padding: 2px 10px;
+    font-size: 22px;
+    font-weight: bold;
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+.dos-editor-wrap {
+    flex-grow: 1;
+    position: relative;
+    overflow: hidden;
+}
+.dos-output {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    margin: 0;
+    padding: 10px 15px;
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    line-height: 1.3;
+    color: var(--phosphor);
+    text-shadow: 0 0 5px var(--phosphor-dim);
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 1;
+}
+.dos-input {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: transparent;
+    border: none;
+    outline: none;
+    resize: none;
+    color: transparent;
+    caret-color: var(--phosphor);
+    font-family: 'VT323', monospace;
+    font-size: 22px;
+    line-height: 1.3;
+    padding: 10px 15px;
+    box-sizing: border-box;
+    z-index: 2;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    overflow: auto;
+}
+.dos-statusbar {
+    background: #000;
+    color: var(--phosphor);
+    padding: 2px 10px;
+    font-size: 18px;
+    border-top: 1px solid #333;
+    display: flex;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+
+/* Responsive stacking for narrow screens */
+@media (max-width: 860px) {
+    .crt-monitor {
+        width: 100%;
+        height: auto;
+        min-height: 100vh;
+        padding: 20px;
+        border-radius: 0;
+    }
+    .crt-screen {
+        border-radius: 0;
+        height: auto;
+        min-height: calc(100vh - 40px);
+    }
+    .os-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .os-nav {
+        flex-wrap: wrap;
+    }
+    .app-side-panel,
+    .app-side-panel--narrow,
+    .app-side-panel--wide,
+    .app-side-panel--v4 {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px dashed var(--phosphor);
+        padding-right: 0;
+        padding-bottom: 10px;
+        flex-direction: row;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 10px;
+    }
+    .app-side-panel > * {
+        flex: 1 1 auto;
+    }
+    .lyrics-panel,
+    .lyrics-panel--v1,
+    .lyrics-panel--v4 {
+        font-size: 18px;
+    }
+}

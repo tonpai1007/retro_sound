@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>THE PHANTOM SIGNAL v5 - LRC SYNC</title>
+    <title>THE CRT SIGNAL v5 - LRC SYNC</title>
     <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
     <style>
         :root {
@@ -176,7 +176,7 @@
             <div class="ui-wrapper">
                 <div class="header">
                     <div class="title">
-                        <span>▓▒░ PHANTOM_SIGNAL.v5 ░▒▓</span>
+                         <span>▓▒░ CRT_SIGNAL.v5 ░▒▓</span>
                         <span class="badge">LRC SYNC</span>
                     </div>
                     <span id="clock">00:00:00</span>
@@ -218,7 +218,7 @@
                         <div class="lyrics-panel" id="lyrics-text">
                             > AWAITING SIGNAL...<br>
                             > TUNE RADIO ABOVE 104.0 FOR MUSIC<br>
-                            > TUNE BELOW 92.0 FOR PHANTOM STATION<br>
+                             > TUNE BELOW 92.0 FOR SIGNAL STATION<br>
                             > <span style="color: var(--neon-green);">PRESS LRC TO PASTE TIMESTAMPED LYRICS</span>
                         </div>
                         <div class="progress-bar">
@@ -236,7 +236,7 @@
 
     <script>
         // ============================================================
-        //  PHANTOM SIGNAL v5 — LRC SYNC ENGINE
+        //  CRT SIGNAL v5 — LRC SYNC ENGINE
         // ============================================================
 
         // --- DOM REFS ---
@@ -342,7 +342,7 @@
             if (speechSynth.speaking) speechSynth.cancel();
 
             if (freq < 920) {
-                statusEl.innerText = "STATUS: PHANTOM STATION DETECTED";
+                statusEl.innerText = "STATUS: SIGNAL STATION DETECTED";
                 startNumbersStation();
             } else if (freq > 1040) {
                 statusEl.innerText = "STATUS: MUSIC BAND. LOAD A TRACK";
@@ -826,7 +826,7 @@ function lyricsApiUrl(artist, title) {
             }
         });
 
-        console.log("PHANTOM SIGNAL v5 â LRC SYNC ENGINE INITIALIZED");
+        console.log("CRT SIGNAL v5 — LRC SYNC ENGINE INITIALIZED");
         console.log("Tip: Press LRC to paste timestamped lyrics, then LOAD a track.");
         detectBackend();
         drawOscilloscope();
